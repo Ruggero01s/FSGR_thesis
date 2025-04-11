@@ -1,0 +1,20 @@
+
+iteration: 0
+learning_rate: 0.01
+lstm_units: 100
+embedding_dim: 50
+dropout: 0.0
+rec_dropout: 0.0
+l1: 0.0
+l2: 0.0
+epochs: 3
+batch_size: 64
+max_plan_dim: 42
+project_name: blocksworld_iteration0_test
+domain: blocksworld
+min_plan_perc: 0.3
+max_plan_perc: 1.0
+augmentation_plans: 1
+use_full_plan: True
+patience: 5
+  
