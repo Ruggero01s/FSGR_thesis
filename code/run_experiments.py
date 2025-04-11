@@ -21,7 +21,7 @@ def clear_scripts_dir(scripts_path: str):
 @click.option('--python-path', 'python_path', type=click.STRING,
               default='/opt/anaconda/anaconda3/envs/goal_rec/bin/python', help='Path to Python bin file')
 @click.option('--logger-dir', 'logger_dir', type=click.STRING,
-              default='/home/mchiari/goal_recognition/logs/', help='Folder where to save logs')
+              default='/home/deeplearning/ruggero/FSGR_thesis/logs/', help='Folder where to save logs')
 @click.option('--file-path', 'file_path', type=click.STRING, help='Python file to execute')
 @click.option('--nodes', type=click.INT, default=2, help='Number of nodes per qsub process')
 @click.option('--source-dir', 'source_dir', type=click.STRING, help='Folder that contains the problems')
@@ -30,10 +30,11 @@ def clear_scripts_dir(scripts_path: str):
 @click.option('--memory-limit', 'memory_limit', type=click.INT, help='Memory limit in MB', default=-1)
 @click.option('--test', is_flag=True, help='Flag for running only 5 instances')
 def run(python_path, logger_dir, file_path, nodes, source_dir, target_dir, test, addit_params, memory_limit):
-    scripts_path = '/data/users/mchiari/WMCA/scripts/'
+    scripts_path = './scripts/'
     script_name = 'script_{0}.sh'
 
     clear_scripts_dir(scripts_path)
+    os.makedirs(scripts_path, exist_ok=True)
     os.makedirs(logger_dir, exist_ok=True)
 
     # plans = [os.path.join(source_dir, p) for p in os.listdir(source_dir) if p.lower().endswith('.pddl')

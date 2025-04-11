@@ -1,0 +1,16 @@
+sembra che nessuno dei codici faccia quello che penso
+
+wandb tutorial
+prendere I tre file spacchettarli
+togliere I goal dal dataset e fargli predirre il goal
+il plan viene bucato di una tot percentuale
+
+vedere un po' nel training, validation e test fare un po' di studio di dati
+vedere quanti piani, lunghezza
+quali fluenti vengono raggiunti nei goal
+quanti oggetti
+
+
+per contare i plan
+    devo aprirli
+    cercare come aprirli, immagino con os.listdir
