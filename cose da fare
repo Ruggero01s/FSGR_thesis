@@ -1,7 +1,7 @@
-sembra che nessuno dei codici faccia quello che penso
-
 wandb tutorial
 prendere I tre file spacchettarli
+
+
 togliere I goal dal dataset e fargli predirre il goal
 il plan viene bucato di una tot percentuale
 
@@ -11,6 +11,11 @@ quali fluenti vengono raggiunti nei goal
 quanti oggetti
 
 
-per contare i plan
-    devo aprirli
-    cercare come aprirli, immagino con os.listdir
+
+Numero di plan sono attorno ai 40k-50k circa
+Domain sono ben distribuiti sia in plan length che in numero di oggetti coinvolti nel plan (tutti quelli nell'init più quelli coinvolti in azioni durante il plan)
+
+logistics e zeno come goal hanno un insieme di |at objx posy|
+blockworld un po' di tutto, clear, on, on table,
+satellite |have-image (phenomenon/star/pianeta sono delle direzioni) modo di cattura| e |pointing sat direzione|
+
