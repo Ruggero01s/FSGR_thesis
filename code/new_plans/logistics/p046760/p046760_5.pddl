@@ -1,4 +1,4 @@
-(define (problem logistics_p046760_0)
+(define (problem logistics_p046760_5)
 (:domain logistics)
 (:objects
 	pos33 pos66 pos11 pos13 pos23 pos22 pos21 pos44 pos55 - location
@@ -31,9 +31,9 @@
 	at apn5 apt6
 )
 (:goal (and
-	at obj88 pos11
-	at obj66 pos33
-	at obj12 pos33
-	at obj33 pos11
+	at obj33 pos55
+	at obj23 pos44
+	at obj11 pos22
+	at obj44 pos23
 ))
 )

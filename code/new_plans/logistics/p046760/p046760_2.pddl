@@ -1,12 +1,12 @@
 (define (problem logistics_p046760_2)
 (:domain logistics)
 (:objects
-	apn7 apn2 apn6 apn3 apn1 apn5 - airplane
+	pos33 pos66 pos11 pos13 pos23 pos22 pos21 pos44 pos55 - location
+	apn5 apn3 apn2 apn6 apn1 apn7 - airplane
 	apt6 apt8 apt7 apt5 - airport
-	tru3 tru2 tru1 tru4 tru5 - truck
-	obj66 obj55 obj13 obj11 obj33 obj23 obj00 obj44 obj88 obj12 - package
-	pos13 pos11 pos21 pos22 pos55 pos66 pos44 pos33 pos23 - location
-)
+	tru3 tru1 tru4 tru5 tru2 - truck
+	obj44 obj11 obj88 obj00 obj23 obj13 obj66 obj55 obj33 obj12 - package
+	)
 (:init
 	at tru2 pos44
 	at tru4 pos22
@@ -31,7 +31,9 @@
 	at apn5 apt6
 )
 (:goal (and
-	at obj66 pos33
-	at obj55 pos13
+	at obj23 pos23
+	at obj55 pos23
+	at obj33 pos13
+	at obj00 pos66
 ))
 )
