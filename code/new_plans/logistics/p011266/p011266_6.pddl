@@ -1,5 +1,4 @@
-;;(;metadata (recognizability:0.19)
-(define (problem logistics_p011266_0)
+(define (problem logistics_p011266_6)
 (:domain logistics)
 (:objects
 	pos33 pos66 pos23 pos44 pos55 - location
@@ -20,9 +19,9 @@
 	at apn8 apt4
 )
 (:goal (and
-	at obj55 pos33
-	at obj23 pos66
-	at obj13 pos33
 	at obj11 pos66
+	at obj88 pos66
+	at obj22 pos23
+	at obj55 pos23
 ))
 )

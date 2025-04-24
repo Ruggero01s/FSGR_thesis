@@ -19,3 +19,10 @@ logistics e zeno come goal hanno un insieme di |at objx posy|
 blockworld un po' di tutto, clear, on, on table,
 satellite |have-image (phenomenon/star/pianeta sono delle direzioni) modo di cattura| e |pointing sat direzione|
 
+
+
+genero set a caso dai filler
+poi while rec < classe swappo uno random con un fluente del current
+    se rec > classe invece identifico un fluente uguale ad uno del current e swappo con uno randomico
+
+    ['at obj12 pos33', 'at obj66 pos44', 'at obj55 pos66', 'at obj13 pos33', {'at obj11 pos13', 'at obj88 pos33', 'at obj55 pos66', 'at obj44 pos11'}, {'at obj12 pos13', 'at obj11 pos22', 'at obj00 pos66', 'at obj55 pos22'}, {'at obj13 pos44', 'at obj33 pos13', 'at obj66 pos44', 'at obj55 pos55'}, {'at obj88 pos23', 'at obj12 pos33', 'at obj00 pos44', 'at obj11 pos11'}]
