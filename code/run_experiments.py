@@ -2,7 +2,7 @@ import os
 
 import click
 from os.path import  join, isdir
-from utils_unibs.files import load_from_folder
+from utils import load_from_folder
 from multiprocess import Pool
 
 def run_script(script: str):
@@ -37,9 +37,9 @@ def run(python_path, logger_dir, file_path, nodes, source_dir, target_dir, test,
     os.makedirs(scripts_path, exist_ok=True)
     os.makedirs(logger_dir, exist_ok=True)
 
-    # plans = [os.path.join(source_dir, p) for p in os.listdir(source_dir) if p.lower().endswith('.pddl')
-    #          and not p.startswith('domain')]
-    plans = os.listdir(source_dir)
+    plans = [os.path.join(source_dir, p) for p in os.listdir(source_dir) if p.lower().endswith('.pddl')
+            and not p.startswith('domain')]
+    # plans = os.listdir(source_dir)
     # [not_completed_plans] = load_from_folder('/home/mchiari/state_embedding/', ['logistics_not_completed_gr.txt'])
     for i, plan in enumerate(plans):
         # if plan == 'domain.pddl' or f"{plan.rsplit('.',1)[0]}\n" not in not_completed_plans:

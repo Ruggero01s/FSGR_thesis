@@ -29,3 +29,13 @@ poi while rec < classe swappo uno random con un fluente del current
     present_base_goal_fluents: ['at obj11 pos11']
     candidates_list: [['at obj33 pos21', 'at obj11 pos11', 'at obj12 pos23', 'at obj55 pos55'], ['at obj55 pos44', 'at obj13 pos21', 'at obj88 pos66', 'at obj33 pos23'], ['at obj00 pos44', 'at obj12 pos11', 'at obj13 pos55', 'at obj33 pos33'], ['at obj23 pos33', 'at obj88 pos22', 'at obj13 pos55', 'at obj44 pos11'], ['at obj23 pos13', 'at obj11 pos21', 'at obj66 pos33', 'at obj33 pos23'], ['at obj33 pos44', 'at obj00 pos22', 'at obj13 pos21', 'at obj88 pos66'], ['at obj11 pos21', 'at obj23 pos33', 'at obj44 pos13', 'at obj88 pos11']]
     goal_state: ['at obj33 pos21', 'at obj11 pos11', 'at obj12 pos23', 'at obj55 pos55']
+
+
+
+devo fare una struttura per tenere i piani originali con le loro versioni immagino, o si può fare per nome dopo in realtà
+
+per arrivare ai piani devono essere risolto
+    per risolverli bisogna runnare fast downward
+        per runnare serve un script che lo fa partire
+            vogliamo che sia parallelo quindi serve uno script per piano
+                per generare gli script si usa run experiment
