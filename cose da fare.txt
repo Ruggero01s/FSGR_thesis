@@ -39,3 +39,22 @@ per arrivare ai piani devono essere risolto
         per runnare serve un script che lo fa partire
             vogliamo che sia parallelo quindi serve uno script per piano
                 per generare gli script si usa run experiment
+
+
+{'Top1_Acc_MB/train_phase/train_stream/Task000': 1.0, 'Loss_MB/train_phase/train_stream/Task000': 0.015492322854697704, 
+'Top1_Acc_Epoch/train_phase/train_stream/Task000': 1.0, 'Loss_Epoch/train_phase/train_stream/Task000': 0.019019514361412086, 
+'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000': 0.9912280701754386, 'Loss_Exp/eval_phase/test_stream/Task000/Exp000': 0.05138364852520458, 
+'Top1_Acc_Stream/eval_phase/test_stream/Task000': 0.9912280701754386, 'Loss_Stream/eval_phase/test_stream/Task000': 0.05138364852520458, 
+'StreamForgetting/eval_phase/test_stream': 0.0, 'ExperienceForgetting/eval_phase/test_stream/Task000/Exp000': 0.0}
+
+{'Top1_Acc_MB/train_phase/train_stream/Task000': 1.0, 'Loss_MB/train_phase/train_stream/Task000': 0.012979770079255104, 
+'Top1_Acc_Epoch/train_phase/train_stream/Task000': 1.0, 'Loss_Epoch/train_phase/train_stream/Task000': 0.015673329354542978, 
+'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000': 0.9912280701754386, 'Loss_Exp/eval_phase/test_stream/Task000/Exp000': 0.05046273401954718, 
+'Top1_Acc_Stream/eval_phase/test_stream/Task000': 0.9912280701754386, 'Loss_Stream/eval_phase/test_stream/Task000': 0.05046273401954718, 
+'StreamForgetting/eval_phase/test_stream': 0.0, 'ExperienceForgetting/eval_phase/test_stream/Task000/Exp000': 0.0}
+
+{'Top1_Acc_MB/train_phase/train_stream/Task000': 1.0, 'Loss_MB/train_phase/train_stream/Task000': 0.010983709245920181, 
+'Top1_Acc_Epoch/train_phase/train_stream/Task000': 1.0, 'Loss_Epoch/train_phase/train_stream/Task000': 0.013151053380635049, 
+'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000': 0.9912280701754386, 'Loss_Exp/eval_phase/test_stream/Task000/Exp000': 0.05076794156379867, 
+'Top1_Acc_Stream/eval_phase/test_stream/Task000': 0.9912280701754386, 'Loss_Stream/eval_phase/test_stream/Task000': 0.05076794156379867, 
+'StreamForgetting/eval_phase/test_stream': 0.0, 'ExperienceForgetting/eval_phase/test_stream/Task000/Exp000': 0.0}

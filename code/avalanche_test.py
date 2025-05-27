@@ -11,29 +11,9 @@ from avalanche.benchmarks import dataset_benchmark
 from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.logging import InteractiveLogger
 from avalanche.training.supervised import Naive, LwF, EWC, CWRStar, SynapticIntelligence, AR1
-from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
+from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics, forgetting_metrics
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.benchmarks.utils import as_classification_dataset
-
-
-# ==== Synthetic sequential dataset ====
-class SyntheticSequenceDataset(Dataset):
-    def __init__(self, num_sequences=100, seq_length=10, input_size=8):
-        self.data = []
-        self.labels = []
-        for _ in range(num_sequences):
-            x = np.random.randn(seq_length, input_size)
-            y = int(np.mean(x) > 0)
-            self.data.append(torch.tensor(x, dtype=torch.float32))
-            self.labels.append(y)
-        self.targets = self.labels
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx):
-        return self.data[idx], self.labels[idx]
-
 
 # ==== LSTM Model ====
 class LSTMClassifier(nn.Module):
@@ -47,8 +27,9 @@ class LSTMClassifier(nn.Module):
         logits = self.classifier(h_n[-1])
         return logits
 
-# ==== Create synthetic benchmark ====
+# ==== Create benchmark ====
 def create_benchmark(num_experiences=1):
+    #? prepare data
     data = pd.read_csv('DailyDelhiClimateTrain.csv')
     data.head()
     data = data.drop([1461])
@@ -58,7 +39,7 @@ def create_benchmark(num_experiences=1):
     data.loc[data['wind_speed'] > 15, 'wind_speed'] = np.nan
     data['wind_speed'].fillna(median,inplace=True)
     median1 = data.loc[data['meanpressure']<1050, 'meanpressure'].median()
-    data.loc[data['meanpressure'] > 1050 , 'meanpressure'] = np.nan #atmospheric pressure usually lies between 760 and 1050 atm
+    data.loc[data['meanpressure'] > 1050 , 'meanpressure'] = np.nan 
     data.loc[data['meanpressure'] < 760 , 'meanpressure'] = np.nan
     data['meanpressure'].fillna(median1,inplace=True)
     from sklearn.preprocessing import MinMaxScaler
@@ -71,6 +52,7 @@ def create_benchmark(num_experiences=1):
     humidity_scaled = scaler2.fit_transform(data[['humidity']])
     windspeed_scaled = scaler3.fit_transform(data[['wind_speed']])
     meanpressure_scaled = scaler4.fit_transform(data[['meanpressure']])
+    #?
     X_scaled = np.concatenate((meantemp_scaled, humidity_scaled, windspeed_scaled, meanpressure_scaled), axis=1)
     print(X_scaled.shape)
     x=[]
@@ -90,7 +72,7 @@ def create_benchmark(num_experiences=1):
 
     # Wrap in TensorDataset and add targets attribute
     train_tensor_dataset = torch.utils.data.TensorDataset(X_train_tensor, Y_train_tensor)
-    train_tensor_dataset.targets = Y_train_tensor  # <-- add this line
+    train_tensor_dataset.targets = Y_train_tensor
     
     # Split the dataset into num_experiences parts for continual learning
     experience_size = len(train_tensor_dataset) // num_experiences
@@ -101,7 +83,8 @@ def create_benchmark(num_experiences=1):
         subset = torch.utils.data.Subset(train_tensor_dataset, list(range(start_idx, end_idx)))
         subset.targets = train_tensor_dataset.targets[start_idx:end_idx]
         train_datasets.append(as_classification_dataset(subset))
-    # --- Test data ---
+    
+    # same process for Test data ---
     data_test = pd.read_csv('DailyDelhiClimateTest.csv')
     new_data = pd.DataFrame()
     new_data = pd.concat([data.tail(30), data_test], ignore_index=True)
@@ -160,6 +143,7 @@ def main():
     evaluator = EvaluationPlugin(
         accuracy_metrics(minibatch=True, epoch=True, experience=True, stream=True),
         loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+        forgetting_metrics(experience=True, stream=True),
         loggers=[logger]
     )
 
@@ -179,12 +163,24 @@ def main():
     
 
     # Training loop
+    print('Starting experiment...')
+    results = []
     for experience in benchmark.train_stream:
-        print(f"Start training on experience {experience.current_experience}")
-        strategy.train(experience)
-        print(f"End training on experience {experience.current_experience}")
-        print("Evaluating on test stream...")
-        strategy.eval(benchmark.test_stream)
+        print("Start of experience: ", experience.current_experience)
+        print("Current Classes: ", experience.classes_in_this_experience)
+
+        # train returns a dictionary which contains all the metric values
+        res = strategy.train(experience, num_workers=4)
+        print('Training completed')
+
+        print('Computing accuracy on the whole test set')
+        # eval also returns a dictionary which contains all the metric values
+        results.append(strategy.eval(benchmark.test_stream, num_workers=4))
+        
+    for res in results:
+        print(res)
+            
+    
 
 if __name__ == "__main__":
     main()
