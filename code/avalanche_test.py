@@ -1,145 +1,145 @@
 # lstm_single_task_avalanche.py
-#todo find true dataset to test
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset
 import numpy as np
 import pandas as pd
-
+import re
+from collections import Counter
+import csv
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 from avalanche.benchmarks import dataset_benchmark
 from avalanche.benchmarks.utils import AvalancheDataset
-from avalanche.logging import InteractiveLogger
+from avalanche.logging import InteractiveLogger, TextLogger
 from avalanche.training.supervised import Naive, LwF, EWC, CWRStar, SynapticIntelligence, AR1
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics, forgetting_metrics
+
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.benchmarks.utils import as_classification_dataset
+from torchvision import datasets, transforms
 
 # ==== LSTM Model ====
 class LSTMClassifier(nn.Module):
     def __init__(self, input_size, hidden_size, num_classes):
         super().__init__()
+        # Removed the embedding layer since our data is numeric
         self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
         self.classifier = nn.Linear(hidden_size, num_classes)
 
     def forward(self, x):
+        # x is of shape (batch, input_size); add a time dimension => (batch, 1, input_size)
+        x = x.unsqueeze(1)
         _, (h_n, _) = self.lstm(x)
         logits = self.classifier(h_n[-1])
         return logits
 
-# ==== Create benchmark ====
-def create_benchmark(num_experiences=1):
-    #? prepare data
-    data = pd.read_csv('DailyDelhiClimateTrain.csv')
-    data.head()
-    data = data.drop([1461])
-    data = data.drop(columns=['date'])
-    median = data.loc[data['wind_speed']<15, 'wind_speed'].median()
-    data.loc[data['wind_speed'] < 1, 'wind_speed'] = np.nan
-    data.loc[data['wind_speed'] > 15, 'wind_speed'] = np.nan
-    data['wind_speed'].fillna(median,inplace=True)
-    median1 = data.loc[data['meanpressure']<1050, 'meanpressure'].median()
-    data.loc[data['meanpressure'] > 1050 , 'meanpressure'] = np.nan 
-    data.loc[data['meanpressure'] < 760 , 'meanpressure'] = np.nan
-    data['meanpressure'].fillna(median1,inplace=True)
-    from sklearn.preprocessing import MinMaxScaler
-    scaler=MinMaxScaler()
-    scaler2=MinMaxScaler()
-    scaler3=MinMaxScaler()
-    scaler4=MinMaxScaler()
 
-    meantemp_scaled = scaler.fit_transform(data[['meantemp']])
-    humidity_scaled = scaler2.fit_transform(data[['humidity']])
-    windspeed_scaled = scaler3.fit_transform(data[['wind_speed']])
-    meanpressure_scaled = scaler4.fit_transform(data[['meanpressure']])
-    #?
-    X_scaled = np.concatenate((meantemp_scaled, humidity_scaled, windspeed_scaled, meanpressure_scaled), axis=1)
-    print(X_scaled.shape)
-    x=[]
-    for i in range(X_scaled.shape[0]-30):
-        row = X_scaled[i:i+31]
-        x.append(row)
+def generate_multiclass_dataset(
+    n_samples=1000,
+    n_features=20,
+    n_classes=5,
+    test_size=0.2,
+    random_state=42
+):
+    # Generate synthetic data
+    X, y = make_classification(
+        n_samples=n_samples,
+        n_features=n_features,
+        n_informative=int(n_features * 0.6),
+        n_redundant=int(n_features * 0.2),
+        n_classes=n_classes,
+        n_clusters_per_class=1,
+        random_state=random_state
+    )
 
-    x = np.array(x)
-    X_train = x[:, :-1]  # 1st 30 values as x
-    Y_train = x[:, -1, 0]  # last value as y
-    X_train = X_train.reshape(-1, 30, 4)  # [batch, seq_len, features]
-    Y_train = Y_train.astype(np.int64).flatten()    # Ensure labels are int for classification and 1D
+    # Standardize features
+    scaler = StandardScaler()
+    X = scaler.fit_transform(X)
 
-    # Convert to torch tensors
+    # Split into train/test
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=random_state
+    )
+
+    # Convert to PyTorch tensors
     X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
-    Y_train_tensor = torch.tensor(Y_train, dtype=torch.long)
-
-    # Wrap in TensorDataset and add targets attribute
-    train_tensor_dataset = torch.utils.data.TensorDataset(X_train_tensor, Y_train_tensor)
-    train_tensor_dataset.targets = Y_train_tensor
-    
-    # Split the dataset into num_experiences parts for continual learning
-    experience_size = len(train_tensor_dataset) // num_experiences
-    train_datasets = []
-    for i in range(num_experiences):
-        start_idx = i * experience_size
-        end_idx = (i + 1) * experience_size if i < num_experiences - 1 else len(train_tensor_dataset)
-        subset = torch.utils.data.Subset(train_tensor_dataset, list(range(start_idx, end_idx)))
-        subset.targets = train_tensor_dataset.targets[start_idx:end_idx]
-        train_datasets.append(as_classification_dataset(subset))
-    
-    # same process for Test data ---
-    data_test = pd.read_csv('DailyDelhiClimateTest.csv')
-    new_data = pd.DataFrame()
-    new_data = pd.concat([data.tail(30), data_test], ignore_index=True)
-    new_data = new_data.drop(columns=['date'])
-    meantemp_scaled1 = scaler.fit_transform(new_data[['meantemp']])
-    humidity_scaled1 = scaler2.fit_transform(new_data[['humidity']])
-    windspeed_scaled1 = scaler3.fit_transform(new_data[['wind_speed']])
-    meanpressure_scaled1 = scaler4.fit_transform(new_data[['meanpressure']])
-    new_data_scaled = np.concatenate((meantemp_scaled1, humidity_scaled1, windspeed_scaled1, meanpressure_scaled1), axis=1)
-
-    x1 = []
-    for i in range(new_data_scaled.shape[0] - 30):
-        row = new_data_scaled[i:i+31]
-        x1.append(row)
-    x1 = np.array(x1)
-    X_test = x1[:, :-1]
-    Y_test = x1[:, -1, 0]
-    X_test = X_test.reshape(-1, 30, 4)  # [batch, seq_len, features]
-    Y_test = Y_test.astype(np.int64).flatten()  # Ensure 1D
-
+    y_train_tensor = torch.tensor(y_train, dtype=torch.long)
     X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
-    Y_test_tensor = torch.tensor(Y_test, dtype=torch.long)
-    test_tensor_dataset = torch.utils.data.TensorDataset(X_test_tensor, Y_test_tensor)
-    test_tensor_dataset.targets = Y_test_tensor  # <-- add this line
-    test_data = as_classification_dataset(test_tensor_dataset)
+    y_test_tensor = torch.tensor(y_test, dtype=torch.long)
+
+    train_targets = (y_train_tensor.tolist())
+    test_targets = (y_test_tensor.tolist())
+    
+    train_tensor_dataset = torch.utils.data.TensorDataset(X_train_tensor, y_train_tensor)
+    train_tensor_dataset.targets = train_targets
+    
+    # Wrap in TensorDataset
+    test_tensor_dataset = torch.utils.data.TensorDataset(X_test_tensor, y_test_tensor)
+    test_tensor_dataset.targets = test_targets
+
+    return train_tensor_dataset, test_tensor_dataset
+
+# ==== Create benchmark ====
+def create_benchmark():
+    # Transformation: convert image to tensor and flatten it
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Lambda(lambda x: x.view(-1))
+    ])
+
+    # Load MNIST datasets
+    train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+    test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+
+    num_classes = len(train_dataset.classes)
+    
+    train_datasets = []
+    test_datasets = []
+    for cls in range(num_classes):
+        # For each experience, filter only samples with the current class label
+        train_indices = [idx for idx, (_, label) in enumerate(train_dataset) if label == cls]
+        test_indices = [idx for idx, (_, label) in enumerate(test_dataset) if label == cls]
+
+        train_subset = torch.utils.data.Subset(train_dataset, train_indices)
+        train_subset.targets = [cls for _ in train_indices]
+        print(len(train_subset.targets), "train samples for class", cls)
+        test_subset = torch.utils.data.Subset(test_dataset, test_indices)
+        test_subset.targets = [cls for _ in test_indices]
+
+        train_datasets.append(as_classification_dataset(train_subset))
+        test_datasets.append(as_classification_dataset(test_subset))
 
     benchmark = dataset_benchmark(train_datasets=train_datasets,
-                                  test_datasets=[test_data])
-    return benchmark
+                                  test_datasets=test_datasets)
+    return benchmark, num_classes
 
 # ==== Main training ====
 def main():
     # Hyperparameters
-    input_size = 4
     hidden_size = 32
-    num_classes = 2
     num_epochs = 3
     lr = 0.001
-    num_experiences = 4
+    input_size = 784  # number of features from the synthetic dataset
+
+    # Create benchmark 
+    benchmark, num_classes = create_benchmark()
     
     
-    # Create benchmark
-    benchmark = create_benchmark(num_experiences)
+    # Determine number of classes from the training set
 
-    # Model
-    model = LSTMClassifier(input_size=input_size, hidden_size=hidden_size, num_classes=num_classes)
-
-    # Optimizer
+    
+    # Model: using the numeric features as input with input_size instead of vocab_size/embedding_dim
+    model = LSTMClassifier(input_size=input_size,
+                           hidden_size=hidden_size,
+                           num_classes=num_classes)
+    
+    # Optimizer, Loss, logger, evaluator, and strategy remain unchanged
     optimizer = optim.Adam(model.parameters(), lr=lr)
-
-    # Loss
     criterion = nn.CrossEntropyLoss()
-
-    # Logger and evaluator
-    logger = InteractiveLogger()
+    logger = TextLogger(open('avalanche_log.txt', 'w'))
     evaluator = EvaluationPlugin(
         accuracy_metrics(minibatch=True, epoch=True, experience=True, stream=True),
         loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
@@ -147,14 +147,13 @@ def main():
         loggers=[logger]
     )
 
-    # Strategy
-    strategy = CWRStar(model, optimizer, criterion, cwr_layer_name="classifier", train_mb_size=16, train_epochs=num_epochs, eval_mb_size=32,
-        evaluator=evaluator, device="cuda" if torch.cuda.is_available() else "cpu")
-    
-    # strategy = LwF(model, optimizer, criterion, alpha=0.5, temperature=0.2, train_mb_size=16, train_epochs=num_epochs, eval_mb_size=32,
+    # strategy = CWRStar(model=model, optimizer=optimizer, criterion=criterion, cwr_layer_name="classifier", train_mb_size=16, train_epochs=num_epochs, eval_mb_size=32,
     #     evaluator=evaluator, device="cuda" if torch.cuda.is_available() else "cpu")
     
-    # strategy = SynapticIntelligence(model, optimizer, criterion, si_lambda=0.5, train_mb_size=16, train_epochs=num_epochs, eval_mb_size=32,
+    strategy = LwF(model=model, optimizer=optimizer, criterion=criterion, alpha=0.5, temperature=0.2, train_mb_size=16, train_epochs=num_epochs, eval_mb_size=32,
+        evaluator=evaluator, device="cuda" if torch.cuda.is_available() else "cpu")
+    
+    # strategy = SynapticIntelligence(model=model, optimizer=optimizer, criterion=criterion, si_lambda=0.5, train_mb_size=16, train_epochs=num_epochs, eval_mb_size=32,
     #     evaluator=evaluator, device="cuda" if torch.cuda.is_available() else "cpu")
     
     #? cannot use custom model, hardcoded mobileNet
@@ -168,19 +167,27 @@ def main():
     for experience in benchmark.train_stream:
         print("Start of experience: ", experience.current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
-
-        # train returns a dictionary which contains all the metric values
         res = strategy.train(experience, num_workers=4)
         print('Training completed')
-
-        print('Computing accuracy on the whole test set')
-        # eval also returns a dictionary which contains all the metric values
         results.append(strategy.eval(benchmark.test_stream, num_workers=4))
         
-    for res in results:
-        print(res)
-            
+    #res format
+    #{'Top1_Acc_MB/train_phase/train_stream/Task000': 1.0, 'Loss_MB/train_phase/train_stream/Task000': 0.008055219426751137, 'Top1_Acc_Epoch/train_phase/train_stream/Task000': 1.0, 'Loss_Epoch/train_phase/train_stream/Task000': 0.01061710013117093, 'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000': 0.0, 'Loss_Exp/eval_phase/test_stream/Task000/Exp000': 7.869167728813327, 'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp001': 0.0, 'Loss_Exp/eval_phase/test_stream/Task000/Exp001': 7.377173664076213, 'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp002': 0.0, 'Loss_Exp/eval_phase/test_stream/Task000/Exp002': 7.209547952164051, 'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp003': 0.0, 'Loss_Exp/eval_phase/test_stream/Task000/Exp003': 7.20576016265567, 'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp004': 0.0, 'Loss_Exp/eval_phase/test_stream/Task000/Exp004': 7.805358150583178, 'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp005': 0.0, 'Loss_Exp/eval_phase/test_stream/Task000/Exp005': 8.26806780041066, 'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp006': 0.0, 'Loss_Exp/eval_phase/test_stream/Task000/Exp006': 6.513399675644017, 'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp007': 0.0, 'Loss_Exp/eval_phase/test_stream/Task000/Exp007': 4.884914323977459, 'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp008': 1.0, 'Loss_Exp/eval_phase/test_stream/Task000/Exp008': 0.007657568545120881, 'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp009': 0.0, 'Loss_Exp/eval_phase/test_stream/Task000/Exp009': 9.296576205046609, 'Top1_Acc_Stream/eval_phase/test_stream/Task000': 0.0974, 'Loss_Stream/eval_phase/test_stream/Task000': 6.649215859268885, 'StreamForgetting/eval_phase/test_stream': 1.0, 'ExperienceForgetting/eval_phase/test_stream/Task000/Exp000': 1.0, 'ExperienceForgetting/eval_phase/test_stream/Task000/Exp001': 1.0, 'ExperienceForgetting/eval_phase/test_stream/Task000/Exp002': 1.0, 'ExperienceForgetting/eval_phase/test_stream/Task000/Exp003': 1.0, 'ExperienceForgetting/eval_phase/test_stream/Task000/Exp004': 1.0, 'ExperienceForgetting/eval_phase/test_stream/Task000/Exp005': 1.0, 'ExperienceForgetting/eval_phase/test_stream/Task000/Exp006': 1.0, 'ExperienceForgetting/eval_phase/test_stream/Task000/Exp007': 1.0}
+    #considering res format, let's print the accuracy for each experience
+    for i, res in enumerate(results):
+        print(f"Experience {i} results:")
+        for key, value in res.items():
+            if 'Top1_Acc' in key:
+                print(f"{key}: {value:.4f}")
     
-
+    #lets print loss for each experience
+    for i, res in enumerate(results):
+        print(f"Experience {i} results:")
+        for key, value in res.items():
+            if 'Loss' in key:
+                print(f"{key}: {value:.4f}")
+    
+    metric_dict = evaluator.get_all_metrics()
+    print(metric_dict)
 if __name__ == "__main__":
     main()
