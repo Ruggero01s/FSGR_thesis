@@ -1,8 +1,8 @@
 import os
 import click
 import shutil
-from goal_rec_utils.plan import Plan
-from goal_rec_utils.plan_generator import PlanGeneratorMultiPerc
+from plan import Plan
+from plan_generator import PlanGeneratorMultiPerc
 import numpy as np
 
 

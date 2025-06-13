@@ -1,18 +1,18 @@
 from cmath import e
 from gc import callbacks
-from tensorflow.keras.layers import Dense, LSTM, Embedding, Input
-from tensorflow.keras.models import Model
-from goal_rec_utils.plan import Plan
-from goal_rec_utils.attention_layers import AttentionWeights, ContextVector
-from utils_unibs.files import load_from_folder
+from keras.layers import Dense, LSTM, Embedding, Input
+from keras.models import Model
+from plan import Plan
+# from goal_rec_utils.attention_layers import AttentionWeights, ContextVector
+from utils import load_from_folder
 from plan_generator import PlanGeneratorMultiPerc, PlanGeneratorMultiPercAugmented
-from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint, Callback, EarlyStopping
-from tensorflow.keras.models import load_model
-from tensorflow.keras import metrics
-from tensorflow.keras.optimizers import Adam
+from keras.callbacks import TensorBoard, ModelCheckpoint, Callback, EarlyStopping
+from keras.models import load_model
+from keras import metrics
+from keras.optimizers import Adam
 import numpy as np
 from os import path
-from tensorflow.keras import backend as K
+from keras import backend as K
 from sklearn.metrics import accuracy_score, hamming_loss, classification_report
 import datetime
 import os
@@ -104,9 +104,9 @@ def create_model(generator: PlanGeneratorMultiPerc, lr: float):
                                 mask_zero=True,
                                 name='embedding')(input_layer)
     lstm_layer = LSTM(350, return_sequences=True, dropout=0, recurrent_dropout=0, activation='linear', name='lstm')(embedding_layer)
-    attention_weights = AttentionWeights(generator.max_dim, name='attention_weights')(lstm_layer)
-    context_vector = ContextVector()([lstm_layer, attention_weights])
-    output_layer = Dense(len(generator.dizionario_goal), activation='sigmoid', name='dense')(context_vector)
+    # attention_weights = AttentionWeights(generator.max_dim, name='attention_weights')(lstm_layer)
+    # context_vector = ContextVector()([lstm_layer, attention_weights])
+    output_layer = Dense(len(generator.dizionario_goal), activation='sigmoid', name='dense')(lstm_layer)
     model = Model(inputs=input_layer, outputs=output_layer)
     optimizer = Adam(learning_rate=lr)
     model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy', Custom_Hamming_Loss1, metrics.Precision(name='precision')])
@@ -157,16 +157,16 @@ if __name__ == '__main__':
 
     np.random.seed(420)
     
-    plans_dir = '/data/users/mchiari/WMCA/datasets/zenotravel/optimal_plans/plans_max-plan-dim=26_train_percentage=0.8'
-    dict_dir = '/data/users/mchiari/WMCA/datasets/zenotravel/optimal_plans/dictionaries_and_plans'
-    target_dir = path.join('/data/users/mchiari/WMCA/zenotravel/random/', datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    plans_dir = '../datasets//gr_logistics/pickles'
+    dict_dir = '../datasets//gr_logistics/pickles'
+    target_dir = path.join('../datesets/logistics/results/random/', datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
     #target_dir = '/data/users/mchiari/WMCA/blocksworld/incremental_results/20230511-091354'
     logs_dir = path.join(target_dir, 'logs')
     temp_dir = path.join(target_dir, 'temp')
-    [action_dict, goals_dict] = load_from_folder(dict_dir, ['dizionario', 'dizionario_goal'])
+    [action_dict, goals_dict] = load_from_folder(dict_dir, ['action_dict', 'goal_dict'])
 
     
-    test = False
+    test = True
     train = True
     results = False
     live_test = True
@@ -229,8 +229,9 @@ if __name__ == '__main__':
                 print(model.summary())
             else:
                 model = load_model(path.join(target_dir, f'model_{iteration-1}'), custom_objects={'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 
-                                                                                    'AttentionWeights': AttentionWeights, 
-                                                                                    'ContextVector': ContextVector})
+                                                                                    # 'AttentionWeights': AttentionWeights, 
+                                                                                    # 'ContextVector': ContextVector
+                                                                                    })
                 optimizer = Adam(learning_rate=lr)
                 model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy', Custom_Hamming_Loss1, metrics.Precision(name='precision')])
             
@@ -241,8 +242,9 @@ if __name__ == '__main__':
             model.save(path.join(target_dir, 'model_{0}').format(iteration))
             if live_test:
                 model = load_model(path.join(target_dir, f'model_{iteration}'), custom_objects={'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 
-                                                                                    'AttentionWeights': AttentionWeights, 
-                                                                                    'ContextVector': ContextVector})
+                                                                                    # 'AttentionWeights': AttentionWeights, 
+                                                                                    # 'ContextVector': ContextVector
+                                                                                    })
                 optimizer = Adam(learning_rate=lr)
                 model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy', Custom_Hamming_Loss1, metrics.Precision(name='precision')])
                 y_pred, y_true = get_model_predictions(model, test_generator)
@@ -257,6 +259,9 @@ if __name__ == '__main__':
 
         for iteration in range(start_iteration, end_iteration+1):
 
-            model = load_model(model_path.format(iteration), custom_objects={'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 'AttentionWeights': AttentionWeights, 'ContextVector': ContextVector})
+            model = load_model(model_path.format(iteration), custom_objects={'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 
+                                                                            #  'AttentionWeights': AttentionWeights,
+                                                                            #  'ContextVector': ContextVector
+                                                                             })
             y_pred, y_true = get_model_predictions(model, test_generator)
             scores = print_metrics(y_true=y_true, y_pred=y_pred, dizionario_goal=goals_dict, save_dir=path.dirname(model_path), filename='metrics_{0}'.format(iteration))

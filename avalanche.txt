@@ -1,0 +1,384 @@
+2 classi a esperienza
+
+Experience 0 results:
+Top1_Acc_MB/train_phase/train_stream/Task000: 1.0000
+Top1_Acc_Epoch/train_phase/train_stream/Task000: 0.9991
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000: 0.9995
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp001: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp002: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp003: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp004: 0.0000
+Top1_Acc_Stream/eval_phase/test_stream/Task000: 0.2114
+Experience 1 results:
+Top1_Acc_MB/train_phase/train_stream/Task000: 1.0000
+Top1_Acc_Epoch/train_phase/train_stream/Task000: 0.9513
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp001: 0.9848
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp002: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp003: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp004: 0.0000
+Top1_Acc_Stream/eval_phase/test_stream/Task000: 0.2011
+Experience 2 results:
+Top1_Acc_MB/train_phase/train_stream/Task000: 1.0000
+Top1_Acc_Epoch/train_phase/train_stream/Task000: 0.9367
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp001: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp002: 0.9968
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp003: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp004: 0.0000
+Top1_Acc_Stream/eval_phase/test_stream/Task000: 0.1868
+Experience 3 results:
+Top1_Acc_MB/train_phase/train_stream/Task000: 1.0000
+Top1_Acc_Epoch/train_phase/train_stream/Task000: 0.9748
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp001: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp002: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp003: 0.9980
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp004: 0.0000
+Top1_Acc_Stream/eval_phase/test_stream/Task000: 0.1982
+Experience 4 results:
+Top1_Acc_MB/train_phase/train_stream/Task000: 0.8750
+Top1_Acc_Epoch/train_phase/train_stream/Task000: 0.9476
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp001: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp002: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp003: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp004: 0.9829
+Top1_Acc_Stream/eval_phase/test_stream/Task000: 0.1949
+Experience 0 results:
+Loss_MB/train_phase/train_stream/Task000: 0.0000
+Loss_Epoch/train_phase/train_stream/Task000: 0.0049
+Loss_Exp/eval_phase/test_stream/Task000/Exp000: 0.0017
+Loss_Exp/eval_phase/test_stream/Task000/Exp001: 14.4613
+Loss_Exp/eval_phase/test_stream/Task000/Exp002: 16.4688
+Loss_Exp/eval_phase/test_stream/Task000/Exp003: 15.1498
+Loss_Exp/eval_phase/test_stream/Task000/Exp004: 14.6003
+Loss_Stream/eval_phase/test_stream/Task000: 11.9436
+Experience 1 results:
+Loss_MB/train_phase/train_stream/Task000: 0.0662
+Loss_Epoch/train_phase/train_stream/Task000: 0.2520
+Loss_Exp/eval_phase/test_stream/Task000/Exp000: 7.3091
+Loss_Exp/eval_phase/test_stream/Task000/Exp001: 0.0490
+Loss_Exp/eval_phase/test_stream/Task000/Exp002: 15.2057
+Loss_Exp/eval_phase/test_stream/Task000/Exp003: 14.5192
+Loss_Exp/eval_phase/test_stream/Task000/Exp004: 14.1565
+Loss_Stream/eval_phase/test_stream/Task000: 10.0962
+Experience 2 results:
+Loss_MB/train_phase/train_stream/Task000: 0.4794
+Loss_Epoch/train_phase/train_stream/Task000: 0.3435
+Loss_Exp/eval_phase/test_stream/Task000/Exp000: 9.7921
+Loss_Exp/eval_phase/test_stream/Task000/Exp001: 7.9847
+Loss_Exp/eval_phase/test_stream/Task000/Exp002: 0.0169
+Loss_Exp/eval_phase/test_stream/Task000/Exp003: 13.4371
+Loss_Exp/eval_phase/test_stream/Task000/Exp004: 13.7444
+Loss_Stream/eval_phase/test_stream/Task000: 9.0988
+Experience 3 results:
+Loss_MB/train_phase/train_stream/Task000: 0.0457
+Loss_Epoch/train_phase/train_stream/Task000: 0.2631
+Loss_Exp/eval_phase/test_stream/Task000/Exp000: 13.3962
+Loss_Exp/eval_phase/test_stream/Task000/Exp001: 10.1781
+Loss_Exp/eval_phase/test_stream/Task000/Exp002: 9.1995
+Loss_Exp/eval_phase/test_stream/Task000/Exp003: 0.0077
+Loss_Exp/eval_phase/test_stream/Task000/Exp004: 17.9139
+Loss_Stream/eval_phase/test_stream/Task000: 10.1895
+Experience 4 results:
+Loss_MB/train_phase/train_stream/Task000: 0.2399
+Loss_Epoch/train_phase/train_stream/Task000: 0.4513
+Loss_Exp/eval_phase/test_stream/Task000/Exp000: 12.7392
+Loss_Exp/eval_phase/test_stream/Task000/Exp001: 8.9419
+Loss_Exp/eval_phase/test_stream/Task000/Exp002: 6.7619
+Loss_Exp/eval_phase/test_stream/Task000/Exp003: 5.9442
+Loss_Exp/eval_phase/test_stream/Task000/Exp004: 0.0633
+Loss_Stream/eval_phase/test_stream/Task000: 6.9805
+
+
+
+
+
+
+
+
+
+con 1 classe per Experience
+
+Training completed
+Experience 0 results:
+Top1_Acc_MB/train_phase/train_stream/Task000: 1.0000
+Top1_Acc_Epoch/train_phase/train_stream/Task000: 1.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000: 1.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp001: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp002: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp003: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp004: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp005: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp006: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp007: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp008: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp009: 0.0000
+Top1_Acc_Stream/eval_phase/test_stream/Task000: 0.0980
+Experience 1 results:
+Top1_Acc_MB/train_phase/train_stream/Task000: 1.0000
+Top1_Acc_Epoch/train_phase/train_stream/Task000: 1.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000: 0.0204
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp001: 1.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp002: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp003: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp004: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp005: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp006: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp007: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp008: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp009: 0.0000
+Top1_Acc_Stream/eval_phase/test_stream/Task000: 0.1155
+Experience 2 results:
+Top1_Acc_MB/train_phase/train_stream/Task000: 1.0000
+Top1_Acc_Epoch/train_phase/train_stream/Task000: 1.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp001: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp002: 1.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp003: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp004: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp005: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp006: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp007: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp008: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp009: 0.0000
+Top1_Acc_Stream/eval_phase/test_stream/Task000: 0.1032
+Experience 3 results:
+Top1_Acc_MB/train_phase/train_stream/Task000: 1.0000
+Top1_Acc_Epoch/train_phase/train_stream/Task000: 1.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp001: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp002: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp003: 1.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp004: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp005: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp006: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp007: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp008: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp009: 0.0000
+Top1_Acc_Stream/eval_phase/test_stream/Task000: 0.1010
+Experience 4 results:
+Top1_Acc_MB/train_phase/train_stream/Task000: 0.5000
+Top1_Acc_Epoch/train_phase/train_stream/Task000: 0.8020
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp001: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp002: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp003: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp004: 1.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp005: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp006: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp007: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp008: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp009: 0.0000
+Top1_Acc_Stream/eval_phase/test_stream/Task000: 0.0982
+Experience 5 results:
+Top1_Acc_MB/train_phase/train_stream/Task000: 1.0000
+Top1_Acc_Epoch/train_phase/train_stream/Task000: 0.9919
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp001: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp002: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp003: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp004: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp005: 1.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp006: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp007: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp008: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp009: 0.0000
+Top1_Acc_Stream/eval_phase/test_stream/Task000: 0.0892
+Experience 6 results:
+Top1_Acc_MB/train_phase/train_stream/Task000: 1.0000
+Top1_Acc_Epoch/train_phase/train_stream/Task000: 0.9914
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp001: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp002: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp003: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp004: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp005: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp006: 1.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp007: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp008: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp009: 0.0000
+Top1_Acc_Stream/eval_phase/test_stream/Task000: 0.0958
+Experience 7 results:
+Top1_Acc_MB/train_phase/train_stream/Task000: 1.0000
+Top1_Acc_Epoch/train_phase/train_stream/Task000: 1.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp001: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp002: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp003: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp004: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp005: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp006: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp007: 1.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp008: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp009: 0.0000
+Top1_Acc_Stream/eval_phase/test_stream/Task000: 0.1028
+Experience 8 results:
+Top1_Acc_MB/train_phase/train_stream/Task000: 1.0000
+Top1_Acc_Epoch/train_phase/train_stream/Task000: 0.3246
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp001: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp002: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp003: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp004: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp005: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp006: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp007: 0.0875
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp008: 1.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp009: 0.0000
+Top1_Acc_Stream/eval_phase/test_stream/Task000: 0.1064
+Experience 9 results:
+Top1_Acc_MB/train_phase/train_stream/Task000: 0.0000
+Top1_Acc_Epoch/train_phase/train_stream/Task000: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp001: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp002: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp003: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp004: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp005: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp006: 0.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp007: 0.0613
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp008: 1.0000
+Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp009: 0.0000
+Top1_Acc_Stream/eval_phase/test_stream/Task000: 0.1037
+Experience 0 results:
+Loss_MB/train_phase/train_stream/Task000: 0.0001
+Loss_Epoch/train_phase/train_stream/Task000: 0.0012
+Loss_Exp/eval_phase/test_stream/Task000/Exp000: 0.0000
+Loss_Exp/eval_phase/test_stream/Task000/Exp001: 10.9088
+Loss_Exp/eval_phase/test_stream/Task000/Exp002: 11.0765
+Loss_Exp/eval_phase/test_stream/Task000/Exp003: 11.4933
+Loss_Exp/eval_phase/test_stream/Task000/Exp004: 15.6150
+Loss_Exp/eval_phase/test_stream/Task000/Exp005: 12.0577
+Loss_Exp/eval_phase/test_stream/Task000/Exp006: 12.1376
+Loss_Exp/eval_phase/test_stream/Task000/Exp007: 14.0810
+Loss_Exp/eval_phase/test_stream/Task000/Exp008: 11.9603
+Loss_Exp/eval_phase/test_stream/Task000/Exp009: 13.8497
+Loss_Stream/eval_phase/test_stream/Task000: 11.3237
+Experience 1 results:
+Loss_MB/train_phase/train_stream/Task000: 0.0002
+Loss_Epoch/train_phase/train_stream/Task000: 0.0005
+Loss_Exp/eval_phase/test_stream/Task000/Exp000: 16.4649
+Loss_Exp/eval_phase/test_stream/Task000/Exp001: 0.0000
+Loss_Exp/eval_phase/test_stream/Task000/Exp002: 17.1444
+Loss_Exp/eval_phase/test_stream/Task000/Exp003: 16.3522
+Loss_Exp/eval_phase/test_stream/Task000/Exp004: 17.7207
+Loss_Exp/eval_phase/test_stream/Task000/Exp005: 19.3759
+Loss_Exp/eval_phase/test_stream/Task000/Exp006: 17.3963
+Loss_Exp/eval_phase/test_stream/Task000/Exp007: 16.2756
+Loss_Exp/eval_phase/test_stream/Task000/Exp008: 17.7042
+Loss_Exp/eval_phase/test_stream/Task000/Exp009: 18.3584
+Loss_Stream/eval_phase/test_stream/Task000: 15.4194
+Experience 2 results:
+Loss_MB/train_phase/train_stream/Task000: 0.0049
+Loss_Epoch/train_phase/train_stream/Task000: 0.0074
+Loss_Exp/eval_phase/test_stream/Task000/Exp000: 13.9514
+Loss_Exp/eval_phase/test_stream/Task000/Exp001: 7.0872
+Loss_Exp/eval_phase/test_stream/Task000/Exp002: 0.0001
+Loss_Exp/eval_phase/test_stream/Task000/Exp003: 15.0548
+Loss_Exp/eval_phase/test_stream/Task000/Exp004: 17.8049
+Loss_Exp/eval_phase/test_stream/Task000/Exp005: 17.2815
+Loss_Exp/eval_phase/test_stream/Task000/Exp006: 16.9045
+Loss_Exp/eval_phase/test_stream/Task000/Exp007: 18.5171
+Loss_Exp/eval_phase/test_stream/Task000/Exp008: 16.8360
+Loss_Exp/eval_phase/test_stream/Task000/Exp009: 17.3745
+Loss_Stream/eval_phase/test_stream/Task000: 13.8981
+Experience 3 results:
+Loss_MB/train_phase/train_stream/Task000: 0.0025
+Loss_Epoch/train_phase/train_stream/Task000: 0.0653
+Loss_Exp/eval_phase/test_stream/Task000/Exp000: 15.0571
+Loss_Exp/eval_phase/test_stream/Task000/Exp001: 8.5695
+Loss_Exp/eval_phase/test_stream/Task000/Exp002: 7.0014
+Loss_Exp/eval_phase/test_stream/Task000/Exp003: 0.0009
+Loss_Exp/eval_phase/test_stream/Task000/Exp004: 15.6403
+Loss_Exp/eval_phase/test_stream/Task000/Exp005: 16.8050
+Loss_Exp/eval_phase/test_stream/Task000/Exp006: 15.3016
+Loss_Exp/eval_phase/test_stream/Task000/Exp007: 16.6739
+Loss_Exp/eval_phase/test_stream/Task000/Exp008: 15.5467
+Loss_Exp/eval_phase/test_stream/Task000/Exp009: 16.8284
+Loss_Stream/eval_phase/test_stream/Task000: 12.5980
+Experience 4 results:
+Loss_MB/train_phase/train_stream/Task000: 0.6993
+Loss_Epoch/train_phase/train_stream/Task000: 0.3250
+Loss_Exp/eval_phase/test_stream/Task000/Exp000: 7.9903
+Loss_Exp/eval_phase/test_stream/Task000/Exp001: 6.0740
+Loss_Exp/eval_phase/test_stream/Task000/Exp002: 6.6827
+Loss_Exp/eval_phase/test_stream/Task000/Exp003: 6.0248
+Loss_Exp/eval_phase/test_stream/Task000/Exp004: 0.0034
+Loss_Exp/eval_phase/test_stream/Task000/Exp005: 9.6586
+Loss_Exp/eval_phase/test_stream/Task000/Exp006: 10.2255
+Loss_Exp/eval_phase/test_stream/Task000/Exp007: 10.9133
+Loss_Exp/eval_phase/test_stream/Task000/Exp008: 10.2142
+Loss_Exp/eval_phase/test_stream/Task000/Exp009: 11.0813
+Loss_Stream/eval_phase/test_stream/Task000: 7.8469
+Experience 5 results:
+Loss_MB/train_phase/train_stream/Task000: 0.1139
+Loss_Epoch/train_phase/train_stream/Task000: 0.1392
+Loss_Exp/eval_phase/test_stream/Task000/Exp000: 14.0366
+Loss_Exp/eval_phase/test_stream/Task000/Exp001: 12.3521
+Loss_Exp/eval_phase/test_stream/Task000/Exp002: 11.5909
+Loss_Exp/eval_phase/test_stream/Task000/Exp003: 11.0941
+Loss_Exp/eval_phase/test_stream/Task000/Exp004: 10.6283
+Loss_Exp/eval_phase/test_stream/Task000/Exp005: 0.0001
+Loss_Exp/eval_phase/test_stream/Task000/Exp006: 17.4432
+Loss_Exp/eval_phase/test_stream/Task000/Exp007: 16.7202
+Loss_Exp/eval_phase/test_stream/Task000/Exp008: 15.6933
+Loss_Exp/eval_phase/test_stream/Task000/Exp009: 17.8081
+Loss_Stream/eval_phase/test_stream/Task000: 12.8532
+Experience 6 results:
+Loss_MB/train_phase/train_stream/Task000: 0.0505
+Loss_Epoch/train_phase/train_stream/Task000: 0.0951
+Loss_Exp/eval_phase/test_stream/Task000/Exp000: 11.9327
+Loss_Exp/eval_phase/test_stream/Task000/Exp001: 10.6355
+Loss_Exp/eval_phase/test_stream/Task000/Exp002: 13.2609
+Loss_Exp/eval_phase/test_stream/Task000/Exp003: 10.4260
+Loss_Exp/eval_phase/test_stream/Task000/Exp004: 11.1568
+Loss_Exp/eval_phase/test_stream/Task000/Exp005: 8.4553
+Loss_Exp/eval_phase/test_stream/Task000/Exp006: 0.0001
+Loss_Exp/eval_phase/test_stream/Task000/Exp007: 16.7679
+Loss_Exp/eval_phase/test_stream/Task000/Exp008: 15.8367
+Loss_Exp/eval_phase/test_stream/Task000/Exp009: 16.5445
+Loss_Stream/eval_phase/test_stream/Task000: 11.5835
+Experience 7 results:
+Loss_MB/train_phase/train_stream/Task000: 0.3556
+Loss_Epoch/train_phase/train_stream/Task000: 0.2628
+Loss_Exp/eval_phase/test_stream/Task000/Exp000: 9.1766
+Loss_Exp/eval_phase/test_stream/Task000/Exp001: 9.7723
+Loss_Exp/eval_phase/test_stream/Task000/Exp002: 10.8307
+Loss_Exp/eval_phase/test_stream/Task000/Exp003: 8.9099
+Loss_Exp/eval_phase/test_stream/Task000/Exp004: 7.9921
+Loss_Exp/eval_phase/test_stream/Task000/Exp005: 6.0766
+Loss_Exp/eval_phase/test_stream/Task000/Exp006: 4.1245
+Loss_Exp/eval_phase/test_stream/Task000/Exp007: 0.0145
+Loss_Exp/eval_phase/test_stream/Task000/Exp008: 13.6805
+Loss_Exp/eval_phase/test_stream/Task000/Exp009: 13.8063
+Loss_Stream/eval_phase/test_stream/Task000: 8.4751
+Experience 8 results:
+Loss_MB/train_phase/train_stream/Task000: 1.2015
+Loss_Epoch/train_phase/train_stream/Task000: 1.4533
+Loss_Exp/eval_phase/test_stream/Task000/Exp000: 3.7698
+Loss_Exp/eval_phase/test_stream/Task000/Exp001: 3.7157
+Loss_Exp/eval_phase/test_stream/Task000/Exp002: 3.3243
+Loss_Exp/eval_phase/test_stream/Task000/Exp003: 2.5396
+Loss_Exp/eval_phase/test_stream/Task000/Exp004: 2.2136
+Loss_Exp/eval_phase/test_stream/Task000/Exp005: 2.5792
+Loss_Exp/eval_phase/test_stream/Task000/Exp006: 2.3688
+Loss_Exp/eval_phase/test_stream/Task000/Exp007: 1.3681
+Loss_Exp/eval_phase/test_stream/Task000/Exp008: 1.1864
+Loss_Exp/eval_phase/test_stream/Task000/Exp009: 4.4600
+Loss_Stream/eval_phase/test_stream/Task000: 2.7713
+Experience 9 results:
+Loss_MB/train_phase/train_stream/Task000: 1.7946
+Loss_Epoch/train_phase/train_stream/Task000: 2.0954
+Loss_Exp/eval_phase/test_stream/Task000/Exp000: 4.0571
+Loss_Exp/eval_phase/test_stream/Task000/Exp001: 4.0230
+Loss_Exp/eval_phase/test_stream/Task000/Exp002: 3.6047
+Loss_Exp/eval_phase/test_stream/Task000/Exp003: 2.7823
+Loss_Exp/eval_phase/test_stream/Task000/Exp004: 2.3367
+Loss_Exp/eval_phase/test_stream/Task000/Exp005: 2.8078
+Loss_Exp/eval_phase/test_stream/Task000/Exp006: 2.5525
+Loss_Exp/eval_phase/test_stream/Task000/Exp007: 1.5354
+Loss_Exp/eval_phase/test_stream/Task000/Exp008: 1.3190
+Loss_Exp/eval_phase/test_stream/Task000/Exp009: 1.7874
+Loss_Stream/eval_phase/test_stream/Task000: 2.6983

@@ -20,20 +20,30 @@ from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics, forgett
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.benchmarks.utils import as_classification_dataset
 from torchvision import datasets, transforms
+from torch.utils.data import ConcatDataset
+
+from avalanche.benchmarks.classic import SplitMNIST
+from avalanche.models import SimpleMLP
 
 # ==== LSTM Model ====
 class LSTMClassifier(nn.Module):
-    def __init__(self, input_size, hidden_size, num_classes):
+    def __init__(self, input_size, hidden_size, num_classes, dropout_rate=0.5):
         super().__init__()
-        # Removed the embedding layer since our data is numeric
-        self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
+        self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True, num_layers=2)
+        self.dropout = nn.Dropout(dropout_rate)
+        self.bn = nn.BatchNorm1d(hidden_size)
         self.classifier = nn.Linear(hidden_size, num_classes)
+        # self.softmax = nn.Softmax(dim=1)  # Optional: for inference only
 
     def forward(self, x):
-        # x is of shape (batch, input_size); add a time dimension => (batch, 1, input_size)
+        # x shape: (batch, input_size); add time dimension => (batch, 1, input_size)
         x = x.unsqueeze(1)
         _, (h_n, _) = self.lstm(x)
-        logits = self.classifier(h_n[-1])
+        x = h_n[-1]
+        x = self.dropout(x)
+        x = self.bn(x)
+        logits = self.classifier(x)
+        # output = self.softmax(logits)
         return logits
 
 
@@ -93,48 +103,103 @@ def create_benchmark():
     # Load MNIST datasets
     train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
     test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
-
-    num_classes = len(train_dataset.classes)
+    #trim down the dataset to 10000 samples for training and 2000 for testing
+    train_dataset_trim = torch.utils.data.Subset(train_dataset, range(10000))
+    train_dataset_trim.targets = torch.utils.data.Subset(train_dataset.targets, range(10000))
+    train_dataset_trim.classes = train_dataset.classes
+    test_dataset_trim = torch.utils.data.Subset(test_dataset, range(2000))
+    test_dataset_trim.targets = torch.utils.data.Subset(test_dataset.targets, range(2000))
+    test_dataset_trim.classes = test_dataset.classes
+    print("Train dataset size:", len(train_dataset_trim))
+    print("Test dataset size:", len(test_dataset_trim))
+    print(train_dataset_trim.targets)
+    print(test_dataset_trim.targets)
+    num_classes = len(train_dataset_trim.classes)
     
     train_datasets = []
     test_datasets = []
+    
+
     for cls in range(num_classes):
         # For each experience, filter only samples with the current class label
-        train_indices = [idx for idx, (_, label) in enumerate(train_dataset) if label == cls]
-        test_indices = [idx for idx, (_, label) in enumerate(test_dataset) if label == cls]
+        train_indices = [idx for idx, (_, label) in enumerate(train_dataset_trim) if label == cls]
+        test_indices = [idx for idx, (_, label) in enumerate(test_dataset_trim) if label == cls]
 
-        train_subset = torch.utils.data.Subset(train_dataset, train_indices)
+        train_subset = torch.utils.data.Subset(train_dataset_trim, train_indices)
         train_subset.targets = [cls for _ in train_indices]
         print(len(train_subset.targets), "train samples for class", cls)
-        test_subset = torch.utils.data.Subset(test_dataset, test_indices)
+        test_subset = torch.utils.data.Subset(test_dataset_trim, test_indices)
         test_subset.targets = [cls for _ in test_indices]
 
         train_datasets.append(as_classification_dataset(train_subset))
         test_datasets.append(as_classification_dataset(test_subset))
+        
+    merged_train_datasets = []
+    merged_test_datasets = []
+    classes_per_experience = 1 # Number of classes per experience
+    for i in range(0, len(train_datasets), classes_per_experience):
+        merged_train = ConcatDataset(train_datasets[i:i+classes_per_experience])
+        merged_test = ConcatDataset(test_datasets[i:i+classes_per_experience])
+        merged_train_datasets.append(merged_train)
+        merged_test_datasets.append(merged_test)
 
-    benchmark = dataset_benchmark(train_datasets=train_datasets,
-                                  test_datasets=test_datasets)
+    benchmark = dataset_benchmark(train_datasets=merged_train_datasets, test_datasets=merged_test_datasets)
+
+    # benchmark = dataset_benchmark(train_datasets=train_dataset,
+    #                               test_datasets=test_dataset)
     return benchmark, num_classes
+
+def flatten_transform(x):
+    # If x is already a tensor, just flatten it
+    if isinstance(x, torch.Tensor):
+        return x.view(-1)
+    # Otherwise convert to tensor and flatten it
+    x = transforms.functional.to_tensor(x)
+    return x.view(-1)
 
 # ==== Main training ====
 def main():
     # Hyperparameters
     hidden_size = 32
-    num_epochs = 3
-    lr = 0.001
-    input_size = 784  # number of features from the synthetic dataset
+    num_epochs = 10
+    lr = 0.00001
+    input_size = 784  # number of features  28*28
 
     # Create benchmark 
-    benchmark, num_classes = create_benchmark()
-    
-    
-    # Determine number of classes from the training set
+    # Define a transformation to flatten the MNIST images
+    transform = transforms.Lambda(flatten_transform)
 
+    # Create benchmark with transformation for both training and evaluation
+    benchmark = SplitMNIST(n_experiences=5, return_task_id=False, seed=42,
+                           train_transform=transform,
+                           eval_transform=transform)
+    # benchmark = SplitMNIST(n_experiences=10, return_task_id=False, seed=42)
     
+    # benchmark, num_classes = create_benchmark()
+    
+    num_classes = benchmark.n_classes
+    
+    print("Number of classes in the benchmark:", num_classes)
+    
+    #? Instead of incremental experiences, concatenate all training and test experiences:
+    from torch.utils.data import ConcatDataset
+    full_train_dataset = ConcatDataset([exp.dataset for exp in benchmark.train_stream])
+    full_test_dataset  = ConcatDataset([exp.dataset for exp in benchmark.test_stream])
+    print("Full train dataset size:", len(full_train_dataset))
+    print("Full test dataset size:", len(full_test_dataset))
+    
+    train_loader = torch.utils.data.DataLoader(full_train_dataset, batch_size=64, shuffle=True)
+    test_loader  = torch.utils.data.DataLoader(full_test_dataset, batch_size=32, shuffle=False)
+    #?
     # Model: using the numeric features as input with input_size instead of vocab_size/embedding_dim
     model = LSTMClassifier(input_size=input_size,
                            hidden_size=hidden_size,
                            num_classes=num_classes)
+    # model = SimpleMLP(num_classes=num_classes,hidden_size=64,hidden_layers=2)
+    
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
+    
     
     # Optimizer, Loss, logger, evaluator, and strategy remain unchanged
     optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -147,27 +212,61 @@ def main():
         loggers=[logger]
     )
 
-    # strategy = CWRStar(model=model, optimizer=optimizer, criterion=criterion, cwr_layer_name="classifier", train_mb_size=16, train_epochs=num_epochs, eval_mb_size=32,
+    
+    
+    # strategy = CWRStar(model=model, optimizer=optimizer, criterion=criterion, cwr_layer_name="classifier", train_mb_size=100, train_epochs=num_epochs, eval_mb_size=32,
     #     evaluator=evaluator, device="cuda" if torch.cuda.is_available() else "cpu")
     
-    strategy = LwF(model=model, optimizer=optimizer, criterion=criterion, alpha=0.5, temperature=0.2, train_mb_size=16, train_epochs=num_epochs, eval_mb_size=32,
+    strategy = LwF(model=model, optimizer=optimizer, criterion=criterion, alpha=0.2, temperature=0.2, train_mb_size=100, train_epochs=num_epochs, eval_mb_size=50,
         evaluator=evaluator, device="cuda" if torch.cuda.is_available() else "cpu")
     
-    # strategy = SynapticIntelligence(model=model, optimizer=optimizer, criterion=criterion, si_lambda=0.5, train_mb_size=16, train_epochs=num_epochs, eval_mb_size=32,
+    # strategy = SynapticIntelligence(model=model, optimizer=optimizer, criterion=criterion, si_lambda=0.5, train_mb_size=64, train_epochs=num_epochs, eval_mb_size=32,
     #     evaluator=evaluator, device="cuda" if torch.cuda.is_available() else "cpu")
     
+    # strategy = EWC(model=model, optimizer=optimizer, criterion=criterion, ewc_lambda=0.5, train_mb_size=16, train_epochs=num_epochs, eval_mb_size=32,
+    # evaluator=evaluator, device="cuda" if torch.cuda.is_available() else "cpu")
+
     #? cannot use custom model, hardcoded mobileNet
     # strategy = AR1(model=model, lr=lr, criterion=criterion, freeze_below_layer="classifier", ewc_lambda=0.2, train_mb_size=16, train_epochs=num_epochs, eval_mb_size=32,
     #     evaluator=evaluator, device="cuda" if torch.cuda.is_available() else "cpu")
     
-
+    #?-------------------------
+    # print('Starting classical training...')
+    # for epoch in range(num_epochs):
+    #     model.train()
+    #     running_loss = 0.0
+    #     for batch_idx, (data, target, _) in enumerate(train_loader):
+    #         data, target = data.to(device), target.to(device)
+    #         optimizer.zero_grad()
+    #         output = model(data)
+    #         loss = criterion(output, target)
+    #         loss.backward()
+    #         optimizer.step()
+    #         running_loss += loss.item()
+    #     print(f"Epoch {epoch+1}/{num_epochs}, Loss: {running_loss/len(train_loader):.4f}")
+    
+    # # Evaluation loop
+    # model.eval()
+    # test_loss = 0.0
+    # correct = 0
+    # with torch.no_grad():
+    #     for data, target, _ in test_loader:
+    #         data, target = data.to(device), target.to(device)
+    #         output = model(data)
+    #         test_loss += criterion(output, target).item() * data.size(0)
+    #         pred = output.argmax(dim=1, keepdim=True)
+    #         correct += pred.eq(target.view_as(pred)).sum().item()
+    # test_loss /= len(full_test_dataset)
+    # accuracy = correct / len(full_test_dataset)
+    # print(f"Test Loss: {test_loss:.4f}, Test Accuracy: {accuracy:.4f}")
+    #?-------------------------
     # Training loop
     print('Starting experiment...')
     results = []
     for experience in benchmark.train_stream:
         print("Start of experience: ", experience.current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
-        res = strategy.train(experience, num_workers=4)
+        res = strategy.train(experience)
         print('Training completed')
         results.append(strategy.eval(benchmark.test_stream, num_workers=4))
         
@@ -177,7 +276,7 @@ def main():
     for i, res in enumerate(results):
         print(f"Experience {i} results:")
         for key, value in res.items():
-            if 'Top1_Acc' in key:
+            if 'Acc' in key:
                 print(f"{key}: {value:.4f}")
     
     #lets print loss for each experience
@@ -186,8 +285,5 @@ def main():
         for key, value in res.items():
             if 'Loss' in key:
                 print(f"{key}: {value:.4f}")
-    
-    metric_dict = evaluator.get_all_metrics()
-    print(metric_dict)
 if __name__ == "__main__":
     main()
