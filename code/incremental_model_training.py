@@ -103,7 +103,8 @@ def create_model(generator: PlanGeneratorMultiPerc, lr: float):
                                 output_dim=83,
                                 mask_zero=True,
                                 name='embedding')(input_layer)
-    lstm_layer = LSTM(350, return_sequences=True, dropout=0, recurrent_dropout=0, activation='linear', name='lstm')(embedding_layer)
+    #? why return sequence was True?
+    lstm_layer = LSTM(350, return_sequences=False, dropout=0, recurrent_dropout=0, activation='linear', name='lstm')(embedding_layer)
     # attention_weights = AttentionWeights(generator.max_dim, name='attention_weights')(lstm_layer)
     # context_vector = ContextVector()([lstm_layer, attention_weights])
     output_layer = Dense(len(generator.dizionario_goal), activation='sigmoid', name='dense')(lstm_layer)
@@ -120,12 +121,25 @@ def get_model_predictions(model: Model, test_generator: PlanGeneratorMultiPerc) 
         x, y = test_generator.__getitem__(i)
         y_pred.extend(model.predict(x))
         y_true.extend(y)
+        # print(np.shape(y_pred)) #todo capire perchè questo coso ha 3D || era perchè lstm layer return_sequences = True
     return y_pred, y_true
 
 def print_metrics(y_true: list, y_pred: list, dizionario_goal: dict, save_dir: str = None,
                   filename: str = 'metrics') -> list:
+    #todo capire vettore pred come voleva essere fatto
     for i, y in enumerate(y_pred):
         y_pred[i] = [0 if pred < 0.5 else 1 for pred in y]
+    # for i in range(len(y_pred)):
+    #     y_rounded = y_pred[i]
+    #     # print(y_rounded)
+    #     for k, pred in enumerate(y_rounded):
+    #         # print(pred)
+    #         if pred < 0.5:
+    #             y_rounded[k] = 0
+    #         else:
+    #             y_rounded[k] = 1
+    #     y_pred[i] = y_rounded
+
     labels = list(dizionario_goal.keys())
     to_print = []
     accuracy = accuracy_score(y_true, y_pred)
@@ -157,13 +171,13 @@ if __name__ == '__main__':
 
     np.random.seed(420)
     
-    plans_dir = '../datasets//gr_logistics/pickles'
-    dict_dir = '../datasets//gr_logistics/pickles'
-    target_dir = path.join('../datesets/logistics/results/random/', datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    plans_dir = './datasets/gr_logistics/pickles'
+    dict_dir = './datasets/gr_logistics/pickles'
+    target_dir = path.join('./datasets/gr_logistics/results/random/', datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
     #target_dir = '/data/users/mchiari/WMCA/blocksworld/incremental_results/20230511-091354'
     logs_dir = path.join(target_dir, 'logs')
     temp_dir = path.join(target_dir, 'temp')
-    [action_dict, goals_dict] = load_from_folder(dict_dir, ['action_dict', 'goal_dict'])
+    [action_dict, goals_dict] = load_from_folder(dict_dir, ['action_dict.pkl', 'goal_dict.pkl'])
 
     
     test = True
@@ -185,14 +199,17 @@ if __name__ == '__main__':
     use_full_plan = True
     patience = 10
 
+    os.makedirs(target_dir, exist_ok=True)
+    
     if live_test or results:
-        [test_plans] = load_from_folder(plans_dir, ['test_plans'])
+        [test_plans] = load_from_folder(plans_dir, ['test_plans.pkl'])
         test_generator = PlanGeneratorMultiPerc(test_plans, action_dict, goals_dict, batch_size,
                                         max_dim, min_perc, max_perc, shuffle=False)
+        #print(f"------------------------------------------\n{test_generator.plans}\n-----------------------------------------")
 
 
     if train:
-        [train_plans, val_plans] = load_from_folder(plans_dir, ['train_plans', 'val_plans'])
+        [train_plans, val_plans] = load_from_folder(plans_dir, ['train_plans.pkl', 'val_plans.pkl'])
         os.makedirs(logs_dir, exist_ok=True)
 
         model = None
@@ -201,8 +218,6 @@ if __name__ == '__main__':
         else:
             iterations = len(train_plans)//(increment*batch_size)
         
-
-
         val_generator = PlanGeneratorMultiPerc(val_plans, action_dict, goals_dict, batch_size=batch_size, max_dim=max_dim, min_perc=min_perc, max_perc=max_perc, shuffle=False)
         
         for  iteration in range(0, iterations):
@@ -228,7 +243,7 @@ if __name__ == '__main__':
                 model = create_model(train_generator, lr=lr)
                 print(model.summary())
             else:
-                model = load_model(path.join(target_dir, f'model_{iteration-1}'), custom_objects={'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 
+                model = load_model(path.join(target_dir, f'model_{iteration-1}.keras'), custom_objects={'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 
                                                                                     # 'AttentionWeights': AttentionWeights, 
                                                                                     # 'ContextVector': ContextVector
                                                                                     })
@@ -239,9 +254,9 @@ if __name__ == '__main__':
                 model = create_model(train_generator, lr=lr)
             else:
                 model.fit(train_generator, epochs=epochs, verbose=2, validation_data=val_generator, callbacks=callbacks)
-            model.save(path.join(target_dir, 'model_{0}').format(iteration))
+            model.save(path.join(target_dir, 'model_{0}.keras').format(iteration))
             if live_test:
-                model = load_model(path.join(target_dir, f'model_{iteration}'), custom_objects={'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 
+                model = load_model(path.join(target_dir, f'model_{iteration}.keras'), custom_objects={'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 
                                                                                     # 'AttentionWeights': AttentionWeights, 
                                                                                     # 'ContextVector': ContextVector
                                                                                     })
@@ -254,9 +269,11 @@ if __name__ == '__main__':
     if results:
         start_iteration = 0
         end_iteration = 18
-        model_path = '/home/mchiari/goal_recognition/depots/incremental_training/20221007-142439/model_{0}'
+        #!
+        model_path = '' #todo 
+        #!
 
-
+        
         for iteration in range(start_iteration, end_iteration+1):
 
             model = load_model(model_path.format(iteration), custom_objects={'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 
