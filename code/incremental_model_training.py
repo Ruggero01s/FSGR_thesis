@@ -2,8 +2,10 @@ from cmath import e
 from gc import callbacks
 from keras.layers import Dense, LSTM, Embedding, Input
 from keras.models import Model
+from keras import backend as K
+import tensorflow as tf
 from plan import Plan
-# from goal_rec_utils.attention_layers import AttentionWeights, ContextVector
+from utils import AttentionWeights, ContextVector
 from utils import load_from_folder
 from plan_generator import PlanGeneratorMultiPerc, PlanGeneratorMultiPercAugmented
 from keras.callbacks import TensorBoard, ModelCheckpoint, Callback, EarlyStopping
@@ -86,25 +88,22 @@ class SaveBestModelCallback(Callback):
         return new_best, [min_val_loss, weights]
 
 
-
-
 def Custom_Hamming_Loss1(y_true, y_pred):
-  tmp = K.abs(y_true-y_pred)
-  return K.mean(K.cast(K.greater(tmp,0.5),dtype=float))
-
+    # round‐style Hamming loss: count how many preds differ >0.5 from true
+    y_true = tf.cast(y_true, tf.float64)
+    y_pred = tf.cast(y_pred, tf.float64)
+    diff = tf.cast(tf.abs(y_true - y_pred), tf.float64)
+    mismatches = tf.cast(tf.greater(diff, 0.5), tf.float64)
+    return tf.reduce_mean(mismatches)
 
 def create_model(generator: PlanGeneratorMultiPerc, lr: float):
-    
-    
-
     input_layer = Input(shape=(generator.max_dim,))
-    embedding_layer = Embedding(input_dim=len(generator.dizionario)+1,
-                                input_length=generator.max_dim, 
-                                output_dim=83,
+    embedding_layer = Embedding(input_dim=len(generator.dizionario)+1, 
+                                output_dim=85, #? perchè 83?
                                 mask_zero=True,
                                 name='embedding')(input_layer)
-    #? why return sequence was True?
-    lstm_layer = LSTM(350, return_sequences=False, dropout=0, recurrent_dropout=0, activation='linear', name='lstm')(embedding_layer)
+    #using hyperparameters from optuna optimization
+    lstm_layer = LSTM(446, return_sequences=False, dropout=0.12, recurrent_dropout=0.01, activation='linear', name='lstm')(embedding_layer)
     # attention_weights = AttentionWeights(generator.max_dim, name='attention_weights')(lstm_layer)
     # context_vector = ContextVector()([lstm_layer, attention_weights])
     output_layer = Dense(len(generator.dizionario_goal), activation='sigmoid', name='dense')(lstm_layer)
@@ -129,16 +128,6 @@ def print_metrics(y_true: list, y_pred: list, dizionario_goal: dict, save_dir: s
     #todo capire vettore pred come voleva essere fatto
     for i, y in enumerate(y_pred):
         y_pred[i] = [0 if pred < 0.5 else 1 for pred in y]
-    # for i in range(len(y_pred)):
-    #     y_rounded = y_pred[i]
-    #     # print(y_rounded)
-    #     for k, pred in enumerate(y_rounded):
-    #         # print(pred)
-    #         if pred < 0.5:
-    #             y_rounded[k] = 0
-    #         else:
-    #             y_rounded[k] = 1
-    #     y_pred[i] = y_rounded
 
     labels = list(dizionario_goal.keys())
     to_print = []
@@ -168,48 +157,52 @@ def run_tests(model: Model, test_plans: list, dizionario: dict, dizionario_goal:
                                filename=filename)
 
 if __name__ == '__main__':
-
-    np.random.seed(420)
+    tf.config.set_visible_devices([], 'GPU')
+    np.random.seed(42)
     
     plans_dir = './datasets/gr_logistics/pickles'
+    plans_dir = 'datasets/logistics/optimal_plans/plans_max-plan-dim=30_train_percentage=0.8'
     dict_dir = './datasets/gr_logistics/pickles'
-    target_dir = path.join('./datasets/gr_logistics/results/random/', datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
-    #target_dir = '/data/users/mchiari/WMCA/blocksworld/incremental_results/20230511-091354'
+    target_dir = path.join('./datasets/gr_logistics/results/incremental', datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
     logs_dir = path.join(target_dir, 'logs')
     temp_dir = path.join(target_dir, 'temp')
-    [action_dict, goals_dict] = load_from_folder(dict_dir, ['action_dict.pkl', 'goal_dict.pkl'])
+    [action_dict, goals_dict] = load_from_folder(dict_dir, ['dizionario', 'dizionario_goal'])
 
+# Control flow flags:
+    test = False          # Whether to run a quick test of training logic
+    train = True          # Enable the training loop
+    results = False       # Whether to collect final results over saved iterations
+    live_test = True      # Perform evaluation on test set after each iteration
+    random_model = False   #? If True, reinitialize model each iteration instead of continuing weights # this is done why?
+
+    # Incremental training parameters:
+    start_index = 0               # Starting index in train_plans for current iteration
+    increment = 16                # Number of batches (of size batch_size) per iteration #? è quante batches è un "experience"?
+    batch_size = 64               # Number of samples per batch
+    old_plans_percentage = 0.2      # Fraction of previous plans to include in new increment
+    min_perc = 0.3                # Minimum fraction of plan to use in generator
+    max_perc = 1.0                # Maximum fraction of plan to use in generator
+    max_dim = 26                  # Maximum plan length in dataset #todo check
+    epochs = 3                   # Epochs per iteration
+    patience = 5                  # Early stopping patience in epochs
+
+    # Data augmentation:
+    augmentation_plans = 4        # Number of plans to augment per batch
+    use_full_plan = True          # Whether to include the complete plan in augmentation
     
-    test = True
-    train = True
-    results = False
-    live_test = True
-    random_model = True
-
-    start_index = 0
-    increment = 15
-    batch_size = 64
-    old_plans_percentage = 1
-    min_perc = 0.3
-    max_perc = 1.0
-    max_dim = 26
-    epochs = 50
-
-    augmentation_plans =  4
-    use_full_plan = True
-    patience = 10
+    
 
     os.makedirs(target_dir, exist_ok=True)
     
     if live_test or results:
-        [test_plans] = load_from_folder(plans_dir, ['test_plans.pkl'])
+        [test_plans] = load_from_folder(plans_dir, ['test_plans'])
         test_generator = PlanGeneratorMultiPerc(test_plans, action_dict, goals_dict, batch_size,
                                         max_dim, min_perc, max_perc, shuffle=False)
         #print(f"------------------------------------------\n{test_generator.plans}\n-----------------------------------------")
 
 
     if train:
-        [train_plans, val_plans] = load_from_folder(plans_dir, ['train_plans.pkl', 'val_plans.pkl'])
+        [train_plans, val_plans] = load_from_folder(plans_dir, ['train_plans', 'val_plans'])
         os.makedirs(logs_dir, exist_ok=True)
 
         model = None
@@ -218,7 +211,8 @@ if __name__ == '__main__':
         else:
             iterations = len(train_plans)//(increment*batch_size)
         
-        val_generator = PlanGeneratorMultiPerc(val_plans, action_dict, goals_dict, batch_size=batch_size, max_dim=max_dim, min_perc=min_perc, max_perc=max_perc, shuffle=False)
+        val_generator = PlanGeneratorMultiPerc(val_plans, action_dict, goals_dict, batch_size=batch_size,
+                                               max_dim=max_dim, min_perc=min_perc, max_perc=max_perc, shuffle=False)
         
         for  iteration in range(0, iterations):
 
@@ -226,6 +220,8 @@ if __name__ == '__main__':
                 #ModelCheckpoint(filepath=path.join(temp_dir, 'model.h5'), monitor='val_loss', save_best_only=True)
                 SaveBestModelCallback(temp_dir=temp_dir, iteration=iteration, patience=patience)
                 ]
+            
+            #selects starting index for current iteration so that we look at new plans
             start_index = iteration*increment*batch_size
             print('Iteration: {}'.format(iteration))
             end_index = start_index + increment*batch_size
@@ -238,7 +234,14 @@ if __name__ == '__main__':
                 train_plans_subset.extend(np.random.choice(train_plans[0:start_index], int(old_plans_percentage*increment*batch_size), replace=False))
             start_index = end_index
             np.random.shuffle(train_plans_subset)
-            train_generator = PlanGeneratorMultiPercAugmented(train_plans_subset, action_dict, goals_dict, num_plans=augmentation_plans, batch_size=batch_size, max_dim=max_dim, min_perc=min_perc, max_perc=max_perc, add_complete=use_full_plan, shuffle=True)
+            #* we can use the augmented generator
+            train_generator = PlanGeneratorMultiPercAugmented(train_plans_subset, action_dict, goals_dict, 
+                                                              num_plans=augmentation_plans, batch_size=batch_size, 
+                                                              max_dim=max_dim, min_perc=min_perc, max_perc=max_perc,
+                                                              add_complete=use_full_plan, shuffle=True)
+            # train_generator = PlanGeneratorMultiPerc(train_plans_subset, action_dict, goals_dict,
+            #                                         batch_size=batch_size, max_dim=max_dim, min_perc=min_perc, max_perc=max_perc,
+            #                                         shuffle=True)
             if iteration == 0:
                 model = create_model(train_generator, lr=lr)
                 print(model.summary())

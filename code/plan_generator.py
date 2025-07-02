@@ -124,7 +124,7 @@ def get_actions(actions: list, perc: float, dizionario: dict):
             indexes[i] = ind
             i += 1
     indexes = np.sort(indexes)
-    return [dizionario[a] for a in np.take(actions, indexes)]
+    return [dizionario[a.name] for a in np.take(actions, indexes)]
 
 
 def fill_action_sequence(X, max_dim, actions, i):
@@ -158,6 +158,7 @@ def get_seed(string: str):
     return seed
 
 
+# to generate more
 class PlanGeneratorMultiPercAugmented(Sequence):
     def __getitem__(self, index):
         batches = self.plans[index * self.batch_size:(index + 1) * self.batch_size]

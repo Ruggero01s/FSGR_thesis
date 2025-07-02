@@ -1,6 +1,8 @@
 code/generated_gr_dataset
 plans/
 datasets/
+merged_dataset/
+/merged_dataset.zip
 # Byte-compiled / optimized / DLL files
 __pycache__/ 
 *.py[cod]
