@@ -18,6 +18,7 @@ from keras import backend as K
 from sklearn.metrics import accuracy_score, hamming_loss, classification_report
 import datetime
 import os
+import warnings
 
 class SaveBestModelCallback(Callback):
 
@@ -89,6 +90,9 @@ class SaveBestModelCallback(Callback):
 
 
 def Custom_Hamming_Loss1(y_true, y_pred):
+    #! translated from the following code:
+    #? tmp = K.abs(y_true-y_pred)
+    #? return K.mean(K.cast(K.greater(tmp,0.5),dtype=float))
     # round‐style Hamming loss: count how many preds differ >0.5 from true
     y_true = tf.cast(y_true, tf.float64)
     y_pred = tf.cast(y_pred, tf.float64)
@@ -103,10 +107,10 @@ def create_model(generator: PlanGeneratorMultiPerc, lr: float):
                                 mask_zero=True,
                                 name='embedding')(input_layer)
     #using hyperparameters from optuna optimization
-    lstm_layer = LSTM(446, return_sequences=False, dropout=0.12, recurrent_dropout=0.01, activation='linear', name='lstm')(embedding_layer)
-    # attention_weights = AttentionWeights(generator.max_dim, name='attention_weights')(lstm_layer)
-    # context_vector = ContextVector()([lstm_layer, attention_weights])
-    output_layer = Dense(len(generator.dizionario_goal), activation='sigmoid', name='dense')(lstm_layer)
+    lstm_layer = LSTM(446, return_sequences=True, dropout=0.12, recurrent_dropout=0.01, activation='linear', name='lstm')(embedding_layer)
+    attention_weights = AttentionWeights(generator.max_dim, name='attention_weights')(lstm_layer)
+    context_vector = ContextVector()([lstm_layer, attention_weights])
+    output_layer = Dense(len(generator.dizionario_goal), activation='sigmoid', name='dense')(context_vector)
     model = Model(inputs=input_layer, outputs=output_layer)
     optimizer = Adam(learning_rate=lr)
     model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy', Custom_Hamming_Loss1, metrics.Precision(name='precision')])
@@ -119,8 +123,12 @@ def get_model_predictions(model: Model, test_generator: PlanGeneratorMultiPerc) 
     for i in range(test_generator.__len__()):
         x, y = test_generator.__getitem__(i)
         y_pred.extend(model.predict(x))
+        print(f'Predictions for batch {i} done')
+        # debug print predictions
+
         y_true.extend(y)
         # print(np.shape(y_pred)) #todo capire perchè questo coso ha 3D || era perchè lstm layer return_sequences = True
+    print(f"Predictions: {y_pred}")
     return y_pred, y_true
 
 def print_metrics(y_true: list, y_pred: list, dizionario_goal: dict, save_dir: str = None,
@@ -157,71 +165,74 @@ def run_tests(model: Model, test_plans: list, dizionario: dict, dizionario_goal:
                                filename=filename)
 
 if __name__ == '__main__':
-    tf.config.set_visible_devices([], 'GPU')
+    # tf.config.set_visible_devices([], 'GPU') # Uncomment this line to disable GPU usage
     np.random.seed(42)
-    
+    warnings.filterwarnings("ignore")
+
     plans_dir = './datasets/gr_logistics/pickles'
-    plans_dir = 'datasets/logistics/optimal_plans/plans_max-plan-dim=30_train_percentage=0.8'
+    # plans_dir = 'datasets/logistics/optimal_plans/plans_max-plan-dim=30_train_percentage=0.8' #old plans
     dict_dir = './datasets/gr_logistics/pickles'
     target_dir = path.join('./datasets/gr_logistics/results/incremental', datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
     logs_dir = path.join(target_dir, 'logs')
     temp_dir = path.join(target_dir, 'temp')
-    [action_dict, goals_dict] = load_from_folder(dict_dir, ['dizionario', 'dizionario_goal'])
+    # [action_dict, goals_dict] = load_from_folder(dict_dir, ['dizionario', 'dizionario_goal'])
+    [action_dict, goals_dict] = load_from_folder(
+        dict_dir, ["action_dict.pkl", "goal_dict.pkl"]
+    )
 
-# Control flow flags:
+    # Control flow flags:
     test = False          # Whether to run a quick test of training logic
     train = True          # Enable the training loop
     results = False       # Whether to collect final results over saved iterations
     live_test = True      # Perform evaluation on test set after each iteration
-    random_model = False   #? If True, reinitialize model each iteration instead of continuing weights # this is done why?
+    random_model = False   #? If True non traina e fa un random per baseline?
 
     # Incremental training parameters:
     start_index = 0               # Starting index in train_plans for current iteration
     increment = 16                # Number of batches (of size batch_size) per iteration #? è quante batches è un "experience"?
     batch_size = 64               # Number of samples per batch
-    old_plans_percentage = 0.2      # Fraction of previous plans to include in new increment
+    old_plans_percentage = 1      # Fraction of previous plans to include in new increment
     min_perc = 0.3                # Minimum fraction of plan to use in generator
     max_perc = 1.0                # Maximum fraction of plan to use in generator
-    max_dim = 26                  # Maximum plan length in dataset #todo check
-    epochs = 3                   # Epochs per iteration
+    max_dim = 31                  # Maximum plan length in dataset #todo check
+    epochs = 1                   # Epochs per iteration
     patience = 5                  # Early stopping patience in epochs
 
     # Data augmentation:
     augmentation_plans = 4        # Number of plans to augment per batch
     use_full_plan = True          # Whether to include the complete plan in augmentation
-    
-    
 
     os.makedirs(target_dir, exist_ok=True)
-    
+
     if live_test or results:
         [test_plans] = load_from_folder(plans_dir, ['test_plans'])
         test_generator = PlanGeneratorMultiPerc(test_plans, action_dict, goals_dict, batch_size,
                                         max_dim, min_perc, max_perc, shuffle=False)
-        #print(f"------------------------------------------\n{test_generator.plans}\n-----------------------------------------")
-
+        # print(f"------------------------------------------\n{test_generator.plans}\n-----------------------------------------")
 
     if train:
         [train_plans, val_plans] = load_from_folder(plans_dir, ['train_plans', 'val_plans'])
+        # train_plans = train_plans[:10000]  # TESTING PURPOSES: limit to 12000 plans
         os.makedirs(logs_dir, exist_ok=True)
-
+        print(f'Training on {len(train_plans)} plans, validation on {len(val_plans)} plans')
         model = None
         if test:
             iterations = 2
         else:
             iterations = len(train_plans)//(increment*batch_size)
-        
+
+        print(f'Iterations: {iterations}')
         val_generator = PlanGeneratorMultiPerc(val_plans, action_dict, goals_dict, batch_size=batch_size,
                                                max_dim=max_dim, min_perc=min_perc, max_perc=max_perc, shuffle=False)
-        
+
         for  iteration in range(0, iterations):
 
             callbacks = [TensorBoard(log_dir=logs_dir, histogram_freq=1, write_graph=True, write_images=True),
-                #ModelCheckpoint(filepath=path.join(temp_dir, 'model.h5'), monitor='val_loss', save_best_only=True)
+                ModelCheckpoint(filepath=path.join(temp_dir, 'model.h5'), monitor='val_loss', save_best_only=True),
                 SaveBestModelCallback(temp_dir=temp_dir, iteration=iteration, patience=patience)
                 ]
-            
-            #selects starting index for current iteration so that we look at new plans
+
+            # selects starting index for current iteration so that we look at new plans
             start_index = iteration*increment*batch_size
             print('Iteration: {}'.format(iteration))
             end_index = start_index + increment*batch_size
@@ -234,40 +245,39 @@ if __name__ == '__main__':
                 train_plans_subset.extend(np.random.choice(train_plans[0:start_index], int(old_plans_percentage*increment*batch_size), replace=False))
             start_index = end_index
             np.random.shuffle(train_plans_subset)
-            #* we can use the augmented generator
-            train_generator = PlanGeneratorMultiPercAugmented(train_plans_subset, action_dict, goals_dict, 
-                                                              num_plans=augmentation_plans, batch_size=batch_size, 
-                                                              max_dim=max_dim, min_perc=min_perc, max_perc=max_perc,
-                                                              add_complete=use_full_plan, shuffle=True)
-            # train_generator = PlanGeneratorMultiPerc(train_plans_subset, action_dict, goals_dict,
-            #                                         batch_size=batch_size, max_dim=max_dim, min_perc=min_perc, max_perc=max_perc,
-            #                                         shuffle=True)
+            # * we can use the augmented generator
+            # train_generator = PlanGeneratorMultiPercAugmented(train_plans_subset, action_dict, goals_dict,
+            #                                                   num_plans=augmentation_plans, batch_size=batch_size,
+            #                                                   max_dim=max_dim, min_perc=min_perc, max_perc=max_perc,
+            #                                                   add_complete=use_full_plan, shuffle=True)
+            train_generator = PlanGeneratorMultiPerc(train_plans_subset, action_dict, goals_dict,
+                                                    batch_size=batch_size, max_dim=max_dim, min_perc=min_perc, max_perc=max_perc, shuffle=True)
             if iteration == 0:
                 model = create_model(train_generator, lr=lr)
                 print(model.summary())
             else:
                 model = load_model(path.join(target_dir, f'model_{iteration-1}.keras'), custom_objects={'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 
-                                                                                    # 'AttentionWeights': AttentionWeights, 
-                                                                                    # 'ContextVector': ContextVector
-                                                                                    })
+                'AttentionWeights': AttentionWeights, 
+                'ContextVector': ContextVector
+                })
                 optimizer = Adam(learning_rate=lr)
                 model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy', Custom_Hamming_Loss1, metrics.Precision(name='precision')])
-            
+
             if random_model:
                 model = create_model(train_generator, lr=lr)
             else:
                 model.fit(train_generator, epochs=epochs, verbose=2, validation_data=val_generator, callbacks=callbacks)
             model.save(path.join(target_dir, 'model_{0}.keras').format(iteration))
             if live_test:
-                model = load_model(path.join(target_dir, f'model_{iteration}.keras'), custom_objects={'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 
-                                                                                    # 'AttentionWeights': AttentionWeights, 
-                                                                                    # 'ContextVector': ContextVector
-                                                                                    })
+                model = load_model(path.join(target_dir, f'model_{iteration}.keras'), 
+                                   custom_objects={'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 
+                                    'AttentionWeights': AttentionWeights, 
+                                    'ContextVector': ContextVector
+                                    })
                 optimizer = Adam(learning_rate=lr)
                 model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy', Custom_Hamming_Loss1, metrics.Precision(name='precision')])
                 y_pred, y_true = get_model_predictions(model, test_generator)
                 scores = print_metrics(y_true=y_true, y_pred=y_pred, dizionario_goal=goals_dict, save_dir=target_dir, filename='metrics_{0}'.format(iteration))
-
 
     if results:
         start_iteration = 0
@@ -276,12 +286,12 @@ if __name__ == '__main__':
         model_path = '' #todo 
         #!
 
-        
         for iteration in range(start_iteration, end_iteration+1):
 
-            model = load_model(model_path.format(iteration), custom_objects={'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 
-                                                                            #  'AttentionWeights': AttentionWeights,
-                                                                            #  'ContextVector': ContextVector
-                                                                             })
+            model = load_model(model_path.format(iteration), custom_objects={
+            'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 
+            'AttentionWeights': AttentionWeights,
+            'ContextVector': ContextVector
+            })
             y_pred, y_true = get_model_predictions(model, test_generator)
             scores = print_metrics(y_true=y_true, y_pred=y_pred, dizionario_goal=goals_dict, save_dir=path.dirname(model_path), filename='metrics_{0}'.format(iteration))

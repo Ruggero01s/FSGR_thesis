@@ -73,8 +73,11 @@ class PlanGeneratorMultiPerc(Sequence):
             np.random.seed(int(seed))
             p = np.random.uniform(self.min_perc, self.perc)
             actions = get_actions(plan.actions, p, self.dizionario)
+            print(f"plan actions: {actions}")
             fill_action_sequence(X, self.max_dim, actions, i)
+            #todo fill action sequence does something?
             Y[i] = get_goal(plan.goals, self.dizionario_goal)
+            #todo check this output
         return X, Y
 
     def __len__(self):
@@ -124,10 +127,14 @@ def get_actions(actions: list, perc: float, dizionario: dict):
             indexes[i] = ind
             i += 1
     indexes = np.sort(indexes)
-    return [dizionario[a.name] for a in np.take(actions, indexes)]
+    # return [dizionario[a.name] for a in np.take(actions, indexes)] #depending on action.py class implementation of pickled plans
+    # If actions are strings use the following line:
+    #todo check this return
+    return [dizionario[a.upper()] for a in np.take(actions, indexes)]
 
 
 def fill_action_sequence(X, max_dim, actions, i):
+    #todo check this function
     for j in range(max_dim):
         if j < len(actions):
             X[i][j] = actions[j]
@@ -138,6 +145,7 @@ def fill_action_sequence(X, max_dim, actions, i):
                 X[i][j] = np.zeros(shape=(len(actions[0]),))
 
 def get_goal(g, dizionario_goal):
+    #todo check this function
     goal = np.zeros(len(dizionario_goal))
     for subgoal in g:
         if subgoal in dizionario_goal:
@@ -212,7 +220,6 @@ class PlanGeneratorMultiPercAugmented(Sequence):
         if self.shuffle == True:
             np.random.shuffle(self.plans)
 
-    
+
 np.random.seed(43)
 random.seed(43)
-
