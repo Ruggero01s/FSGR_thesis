@@ -1,78 +1,11 @@
-wandb tutorial
-prendere I tre file spacchettarli
+prendere i file test da quel file e tenerli da parte gli _og
 
+tenere la struttura per i risultati anche quelli originali
+usando lo script get results and predictions
 
-togliere I goal dal dataset e fargli predirre il goal
-il plan viene bucato di una tot percentuale
+usare i miei piani tutti quelli ho con augment
+vedere dove arriva il modello, se è decente vediamo di andare a togliere dal train quelli che passano confidence e experience vengono tolti dal train e finche num size prossima batch non passa confidence()
 
-vedere un po' nel training, validation e test fare un po' di studio di dati
-vedere quanti piani, lunghezza
-quali fluenti vengono raggiunti nei goal
-quanti oggetti
+nel fare i result con get pred and result aggiungere campo per recognizability
 
-
-
-Numero di plan sono attorno ai 40k-50k circa
-Domain sono ben distribuiti sia in plan length che in numero di oggetti coinvolti nel plan (tutti quelli nell'init più quelli coinvolti in azioni durante il plan)
-
-logistics e zeno come goal hanno un insieme di |at objx posy|
-blockworld un po' di tutto, clear, on, on table,
-satellite |have-image (phenomenon/star/pianeta sono delle direzioni) modo di cattura| e |pointing sat direzione|
-
-
-
-genero set a caso dai filler
-poi while rec < classe swappo uno random con un fluente del current
-    se rec > classe invece identifico un fluente uguale ad uno del current e swappo con uno randomico
-    
-    fluent_to_swap: at obj11 pos11
-    present_base_goal_fluents: ['at obj11 pos11']
-    candidates_list: [['at obj33 pos21', 'at obj11 pos11', 'at obj12 pos23', 'at obj55 pos55'], ['at obj55 pos44', 'at obj13 pos21', 'at obj88 pos66', 'at obj33 pos23'], ['at obj00 pos44', 'at obj12 pos11', 'at obj13 pos55', 'at obj33 pos33'], ['at obj23 pos33', 'at obj88 pos22', 'at obj13 pos55', 'at obj44 pos11'], ['at obj23 pos13', 'at obj11 pos21', 'at obj66 pos33', 'at obj33 pos23'], ['at obj33 pos44', 'at obj00 pos22', 'at obj13 pos21', 'at obj88 pos66'], ['at obj11 pos21', 'at obj23 pos33', 'at obj44 pos13', 'at obj88 pos11']]
-    goal_state: ['at obj33 pos21', 'at obj11 pos11', 'at obj12 pos23', 'at obj55 pos55']
-
-
-
-devo fare una struttura per tenere i piani originali con le loro versioni immagino, o si può fare per nome dopo in realtà
-
-per arrivare ai piani devono essere risolto
-    per risolverli bisogna runnare fast downward
-        per runnare serve un script che lo fa partire
-            vogliamo che sia parallelo quindi serve uno script per piano
-                per generare gli script si usa run experiment
-
-
-
-prendere dataset multilabel e vedere cosa succede con la funzione di regolarizazione
-
-
-
-adattare la classe plan a quello che abbiamo adesso di soluzioni
-
-prima esperienza di 16 batch da 64
-
-usiamo i primi 1024 piani per allenare
-
-tirare altri piani sul server
-
-confidenza con codice, provare a riscirivere in pytorch anche senza attention
-
-guardare più che altro incremental model training da li parte il flow principale
-
-
-domande:
-	perchè usare un numero per identificare le azioni piuttosto che embeddare il fluente direttamente?
-
-    #? why return sequences was True? era per attention?
-    lstm_layer = LSTM(350, return_sequences=False, dropout=0, recurrent_dropout=0, activation='linear', name='lstm')(embedding_layer)
-    # attention_weights = AttentionWeights(generator.max_dim, name='attention_weights')(lstm_layer)
-    # context_vector = ContextVector()([lstm_layer, attention_weights])
-
-    conseguenza => # print(np.shape(y_pred)) #todo capire perchè questo coso ha 3D || era perchè lstm layer return_sequences = True
-    non vedo delle performance
-
-1KlumA6dWp
-
-
-
-
-provare come va su CPU 
+da fast downward prendere anche problemi che non hanno tutte le versioni

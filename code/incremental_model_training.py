@@ -1,6 +1,6 @@
 from cmath import e
 from gc import callbacks
-from keras.layers import Dense, LSTM, Embedding, Input
+from keras.layers import Dense, LSTM, Embedding, Input, Softmax
 from keras.models import Model
 from keras import backend as K
 import tensorflow as tf
@@ -57,7 +57,7 @@ class SaveBestModelCallback(Callback):
     def on_train_end(self, logs=None):
         if self.best_weights is not None:
             self.model.set_weights(self.best_weights)
-            self.model.save(path.join(self.temp_dir, 'model.h5'))
+            self.model.save(path.join(self.temp_dir, 'model_end.keras'))
             print('Best model weights restored')
 
 
@@ -102,19 +102,19 @@ def Custom_Hamming_Loss1(y_true, y_pred):
 
 def create_model(generator: PlanGeneratorMultiPerc, lr: float):
     input_layer = Input(shape=(generator.max_dim,))
-    embedding_layer = Embedding(input_dim=len(generator.dizionario)+1, 
-                                output_dim=85, #? perchè 83?
+    embedding_layer = Embedding(input_dim=len(generator.dizionario)+1, # vocab size
+                                output_dim=85, # embedding size
                                 mask_zero=True,
                                 name='embedding')(input_layer)
-    #using hyperparameters from optuna optimization
-    lstm_layer = LSTM(446, return_sequences=True, dropout=0.12, recurrent_dropout=0.01, activation='linear', name='lstm')(embedding_layer)
+    # using hyperparameters from optuna optimization
+    lstm_layer = LSTM(units=446, return_sequences=True, dropout=0.12, recurrent_dropout=0.01, activation='linear', name='lstm')(embedding_layer)
     attention_weights = AttentionWeights(generator.max_dim, name='attention_weights')(lstm_layer)
     context_vector = ContextVector()([lstm_layer, attention_weights])
     output_layer = Dense(len(generator.dizionario_goal), activation='sigmoid', name='dense')(context_vector)
     model = Model(inputs=input_layer, outputs=output_layer)
     optimizer = Adam(learning_rate=lr)
-    model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy', Custom_Hamming_Loss1, metrics.Precision(name='precision')])
-    
+    model.compile(loss="binary_crossentropy", optimizer=optimizer, metrics=['accuracy', Custom_Hamming_Loss1, metrics.Precision(name='precision')])
+
     return model
 
 def get_model_predictions(model: Model, test_generator: PlanGeneratorMultiPerc) -> list:
@@ -123,20 +123,33 @@ def get_model_predictions(model: Model, test_generator: PlanGeneratorMultiPerc) 
     for i in range(test_generator.__len__()):
         x, y = test_generator.__getitem__(i)
         y_pred.extend(model.predict(x))
-        print(f'Predictions for batch {i} done')
+        # print(f'Predictions for batch {i} done')
         # debug print predictions
 
         y_true.extend(y)
         # print(np.shape(y_pred)) #todo capire perchè questo coso ha 3D || era perchè lstm layer return_sequences = True
-    print(f"Predictions: {y_pred}")
+    # print(f"Predictions: {y_pred}")
     return y_pred, y_true
 
 def print_metrics(y_true: list, y_pred: list, dizionario_goal: dict, save_dir: str = None,
                   filename: str = 'metrics') -> list:
     #todo capire vettore pred come voleva essere fatto
+        
+    # # print(f"y_pred before norm: {y_pred}")
+    # #? provato a scalarle rispetto al massimo valore
+    # for i, y in enumerate(y_pred):
+    #     max_pred = max(y_pred[i])
+    #     if max_pred == 0:
+    #         continue
+    #     y_pred[i] = [pred / max_pred for pred in y]
+    # # print(f"y_pred after norm: {y_pred}")
+    # #?
+    
+    #todo capire vettore pred come voleva essere fatto
     for i, y in enumerate(y_pred):
+        #! le predizioni sono sempre <0.5 quindi vengono tutte portate a 0?? 
         y_pred[i] = [0 if pred < 0.5 else 1 for pred in y]
-
+    
     labels = list(dizionario_goal.keys())
     to_print = []
     accuracy = accuracy_score(y_true, y_pred)
@@ -165,12 +178,13 @@ def run_tests(model: Model, test_plans: list, dizionario: dict, dizionario_goal:
                                filename=filename)
 
 if __name__ == '__main__':
+
     # tf.config.set_visible_devices([], 'GPU') # Uncomment this line to disable GPU usage
-    np.random.seed(42)
+    np.random.seed(420)
     warnings.filterwarnings("ignore")
 
-    plans_dir = './datasets/gr_logistics/pickles'
-    # plans_dir = 'datasets/logistics/optimal_plans/plans_max-plan-dim=30_train_percentage=0.8' #old plans
+    # plans_dir = './datasets/gr_logistics/pickles'
+    plans_dir = 'datasets/logistics/optimal_plans/plans_max-plan-dim=30_train_percentage=0.8' #old plans
     dict_dir = './datasets/gr_logistics/pickles'
     target_dir = path.join('./datasets/gr_logistics/results/incremental', datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
     logs_dir = path.join(target_dir, 'logs')
@@ -186,16 +200,18 @@ if __name__ == '__main__':
     results = False       # Whether to collect final results over saved iterations
     live_test = True      # Perform evaluation on test set after each iteration
     random_model = False   #? If True non traina e fa un random per baseline?
-
+    incremental = True
+    
+    
     # Incremental training parameters:
     start_index = 0               # Starting index in train_plans for current iteration
     increment = 16                # Number of batches (of size batch_size) per iteration #? è quante batches è un "experience"?
     batch_size = 64               # Number of samples per batch
     old_plans_percentage = 1      # Fraction of previous plans to include in new increment
-    min_perc = 0.3                # Minimum fraction of plan to use in generator
-    max_perc = 1.0                # Maximum fraction of plan to use in generator
+    min_perc = 1                # Minimum fraction of plan to use in generator
+    max_perc = 1                # Maximum fraction of plan to use in generator
     max_dim = 31                  # Maximum plan length in dataset #todo check
-    epochs = 1                   # Epochs per iteration
+    epochs = 30                   # Epochs per iteration
     patience = 5                  # Early stopping patience in epochs
 
     # Data augmentation:
@@ -212,7 +228,6 @@ if __name__ == '__main__':
 
     if train:
         [train_plans, val_plans] = load_from_folder(plans_dir, ['train_plans', 'val_plans'])
-        # train_plans = train_plans[:10000]  # TESTING PURPOSES: limit to 12000 plans
         os.makedirs(logs_dir, exist_ok=True)
         print(f'Training on {len(train_plans)} plans, validation on {len(val_plans)} plans')
         model = None
@@ -224,61 +239,111 @@ if __name__ == '__main__':
         print(f'Iterations: {iterations}')
         val_generator = PlanGeneratorMultiPerc(val_plans, action_dict, goals_dict, batch_size=batch_size,
                                                max_dim=max_dim, min_perc=min_perc, max_perc=max_perc, shuffle=False)
+        if incremental == True:
+            for  iteration in range(0, iterations):
 
-        for  iteration in range(0, iterations):
+                callbacks = [TensorBoard(log_dir=logs_dir, histogram_freq=1, write_graph=True, write_images=True),
+                    ModelCheckpoint(filepath=path.join(temp_dir, 'model.h5.keras'), monitor='val_loss', save_best_only=True),
+                    SaveBestModelCallback(temp_dir=temp_dir, iteration=iteration, patience=patience)
+                    ]
 
+                # selects starting index for current iteration so that we look at new plans
+                start_index = iteration*increment*batch_size
+                print('Iteration: {}'.format(iteration))
+                end_index = start_index + increment*batch_size
+                train_plans_subset = train_plans[start_index:end_index]
+
+                lr = np.linspace(0.001, 0.00001, iterations)[iteration]
+
+                if start_index > 0:
+                    # train_plans_subset.extend(train_plans[0:start_index])
+                    train_plans_subset.extend(np.random.choice(train_plans[0:start_index], int(old_plans_percentage*increment*batch_size), replace=False))
+                start_index = end_index
+                np.random.shuffle(train_plans_subset)
+                # * we can use the augmented generator
+                train_generator = PlanGeneratorMultiPercAugmented(train_plans_subset, action_dict, goals_dict,
+                                                                  num_plans=augmentation_plans, batch_size=batch_size,
+                                                                  max_dim=max_dim, min_perc=min_perc, max_perc=max_perc,
+                                                                  add_complete=use_full_plan, shuffle=True)
+                # train_generator = PlanGeneratorMultiPerc(train_plans_subset, action_dict, goals_dict,
+                #                                         batch_size=batch_size, max_dim=max_dim, min_perc=min_perc, max_perc=max_perc, shuffle=True)
+
+                print(f"Iteration {iteration} - Training on {len(train_generator.plans)} plans, in {train_generator.num_batches} batches")
+                if iteration == 0:
+                    model = create_model(train_generator, lr=lr)
+                    print(model.summary())
+                else:
+                    model = load_model(path.join(target_dir, f'model_{iteration-1}.keras'), custom_objects={'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 
+                    'AttentionWeights': AttentionWeights, 
+                    'ContextVector': ContextVector
+                    })
+                    optimizer = Adam(learning_rate=lr)
+                    model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy', Custom_Hamming_Loss1, metrics.Precision(name='precision')])
+
+                if random_model:
+                    model = create_model(train_generator, lr=lr)
+                else:
+                    model.fit(train_generator, epochs=epochs, verbose=2, validation_data=val_generator, callbacks=callbacks)
+                model.save(path.join(target_dir, 'model_{0}.keras').format(iteration))
+                if live_test:
+                    model = load_model(path.join(target_dir, f'model_{iteration}.keras'), 
+                                    custom_objects={'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 
+                                        'AttentionWeights': AttentionWeights, 
+                                        'ContextVector': ContextVector
+                                        })
+                    optimizer = Adam(learning_rate=lr)
+                    model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy', Custom_Hamming_Loss1, metrics.Precision(name='precision')])
+                    y_pred, y_true = get_model_predictions(model, test_generator)
+                    # print(f"y_pred: {y_pred}")
+                    # print(f"y_true: {y_true}")
+                    #! le predizioni sono sempre <0.5 quindi vengono tutte portate a 0
+                    scores = print_metrics(y_true=y_true, y_pred=y_pred, dizionario_goal=goals_dict, save_dir=target_dir, filename='metrics_{0}'.format(iteration))
+        else:
             callbacks = [TensorBoard(log_dir=logs_dir, histogram_freq=1, write_graph=True, write_images=True),
-                ModelCheckpoint(filepath=path.join(temp_dir, 'model.h5'), monitor='val_loss', save_best_only=True),
-                SaveBestModelCallback(temp_dir=temp_dir, iteration=iteration, patience=patience)
-                ]
+                    ModelCheckpoint(filepath=path.join(temp_dir, 'model.h5.keras'), monitor='val_loss', save_best_only=True),
+                    SaveBestModelCallback(temp_dir=temp_dir, iteration=0, patience=patience)
+                    ]
 
-            # selects starting index for current iteration so that we look at new plans
-            start_index = iteration*increment*batch_size
-            print('Iteration: {}'.format(iteration))
-            end_index = start_index + increment*batch_size
-            train_plans_subset = train_plans[start_index:end_index]
+            # selects starting index for current iteration so that we look at new plan
 
-            lr = np.linspace(0.001, 0.00001, iterations)[iteration]
+            lr = 0.0001
 
-            if start_index > 0:
-                # train_plans_subset.extend(train_plans[0:start_index])
-                train_plans_subset.extend(np.random.choice(train_plans[0:start_index], int(old_plans_percentage*increment*batch_size), replace=False))
-            start_index = end_index
-            np.random.shuffle(train_plans_subset)
+            np.random.shuffle(train_plans)
             # * we can use the augmented generator
             # train_generator = PlanGeneratorMultiPercAugmented(train_plans_subset, action_dict, goals_dict,
             #                                                   num_plans=augmentation_plans, batch_size=batch_size,
             #                                                   max_dim=max_dim, min_perc=min_perc, max_perc=max_perc,
             #                                                   add_complete=use_full_plan, shuffle=True)
-            train_generator = PlanGeneratorMultiPerc(train_plans_subset, action_dict, goals_dict,
+            train_generator = PlanGeneratorMultiPerc(train_plans, action_dict, goals_dict,
                                                     batch_size=batch_size, max_dim=max_dim, min_perc=min_perc, max_perc=max_perc, shuffle=True)
-            if iteration == 0:
-                model = create_model(train_generator, lr=lr)
-                print(model.summary())
-            else:
-                model = load_model(path.join(target_dir, f'model_{iteration-1}.keras'), custom_objects={'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 
-                'AttentionWeights': AttentionWeights, 
-                'ContextVector': ContextVector
-                })
-                optimizer = Adam(learning_rate=lr)
-                model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy', Custom_Hamming_Loss1, metrics.Precision(name='precision')])
+
+            
+            model = create_model(train_generator, lr=lr)
+            print(model.summary())
+            optimizer = Adam(learning_rate=lr)
+            model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy', Custom_Hamming_Loss1, metrics.Precision(name='precision')])
 
             if random_model:
                 model = create_model(train_generator, lr=lr)
             else:
                 model.fit(train_generator, epochs=epochs, verbose=2, validation_data=val_generator, callbacks=callbacks)
-            model.save(path.join(target_dir, 'model_{0}.keras').format(iteration))
+            model.save(path.join(target_dir, 'model_FULL.keras'))
             if live_test:
-                model = load_model(path.join(target_dir, f'model_{iteration}.keras'), 
-                                   custom_objects={'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 
+                model = load_model(path.join(target_dir, f'model_FULL.keras'), 
+                                custom_objects={'Custom_Hamming_Loss1': Custom_Hamming_Loss1, 
                                     'AttentionWeights': AttentionWeights, 
                                     'ContextVector': ContextVector
                                     })
                 optimizer = Adam(learning_rate=lr)
                 model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy', Custom_Hamming_Loss1, metrics.Precision(name='precision')])
                 y_pred, y_true = get_model_predictions(model, test_generator)
-                scores = print_metrics(y_true=y_true, y_pred=y_pred, dizionario_goal=goals_dict, save_dir=target_dir, filename='metrics_{0}'.format(iteration))
-
+                # print(f"y_pred: {y_pred}")
+                # print(f"y_true: {y_true}")
+                #! le predizioni sono sempre <0.5 quindi vengono tutte portate a 0
+                scores = print_metrics(y_true=y_true, y_pred=y_pred, dizionario_goal=goals_dict, save_dir=target_dir, filename='metrics_FULL')
+            
+            
+            
     if results:
         start_iteration = 0
         end_iteration = 18

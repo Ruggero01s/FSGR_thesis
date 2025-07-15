@@ -1,16 +1,17 @@
-import os
-import sys
+import tensorflow as tf
+from keras.losses import binary_crossentropy
+import numpy as np
 
-def count_files(directory):
-    return sum(1 for entry in os.scandir(directory) if entry.is_file())
+print("Test\n ================================")
 
-if __name__ == '__main__':
-        
-    directory = "merged_dataset"
-    
-    if not os.path.isdir(directory):
-        print(f"Error: {directory} is not a valid directory.")
-        sys.exit(1)
-    
-    file_count = count_files(directory)
-    print(f"The number of files in directory {directory} is: {file_count}")
+# Use valid probability values (0 < p < 1) and convert to tensors
+y_true = tf.constant([0., 0., 1., 0.])  # true labels
+y_pred = tf.constant([0.1, 0.2, 0.1, 0.1])  # predicted probabilities
+
+loss = binary_crossentropy(y_true, y_pred)
+print(f"Y_true: {y_true.numpy()}")
+print(f"Y_pred: {y_pred.numpy()}")
+print(f"Loss per sample: {loss.numpy()}")
+print(f"Average loss: {tf.reduce_mean(loss).numpy()}")
+
+print("End Test\n ================================")

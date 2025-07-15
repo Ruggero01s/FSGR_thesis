@@ -73,11 +73,12 @@ class PlanGeneratorMultiPerc(Sequence):
             np.random.seed(int(seed))
             p = np.random.uniform(self.min_perc, self.perc)
             actions = get_actions(plan.actions, p, self.dizionario)
-            print(f"plan actions: {actions}")
+            #* print(f"plan actions: {actions}")
+            #* print(f"X:{X}")
             fill_action_sequence(X, self.max_dim, actions, i)
-            #todo fill action sequence does something?
+            #* print(f"X after fill: {X}")
             Y[i] = get_goal(plan.goals, self.dizionario_goal)
-            #todo check this output
+            #* print(f"Y after get goal: {Y[i]}")
         return X, Y
 
     def __len__(self):
@@ -127,14 +128,15 @@ def get_actions(actions: list, perc: float, dizionario: dict):
             indexes[i] = ind
             i += 1
     indexes = np.sort(indexes)
-    # return [dizionario[a.name] for a in np.take(actions, indexes)] #depending on action.py class implementation of pickled plans
-    # If actions are strings use the following line:
-    #todo check this return
-    return [dizionario[a.upper()] for a in np.take(actions, indexes)]
+    if type(actions[0]) == str:
+        # If actions are strings use the following line:
+        return [dizionario[a.upper()] for a in np.take(actions, indexes)]
+    else:
+        return [dizionario[a.name] for a in np.take(actions, indexes)] #depending on action.py class implementation of pickled plans
 
 
 def fill_action_sequence(X, max_dim, actions, i):
-    #todo check this function
+    #fills X vector with actions and then pads with zeroes until max_dim
     for j in range(max_dim):
         if j < len(actions):
             X[i][j] = actions[j]
@@ -145,7 +147,7 @@ def fill_action_sequence(X, max_dim, actions, i):
                 X[i][j] = np.zeros(shape=(len(actions[0]),))
 
 def get_goal(g, dizionario_goal):
-    #todo check this function
+    #gets the goal vector by summing one hot of the subgoals
     goal = np.zeros(len(dizionario_goal))
     for subgoal in g:
         if subgoal in dizionario_goal:
