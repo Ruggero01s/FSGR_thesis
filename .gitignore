@@ -1,8 +1,17 @@
 code/generated_gr_dataset
 plans/
-datasets/
+datasets/gr_logistics/problems/
+datasets/gr_logistics/backup/
+datasets/gr_logistics/solutions_organized/
+datasets/logistics_dataset_optimal/
+datasets/logistics/
 merged_dataset/
 /merged_dataset.zip
+/wandb/
+**/logs/
+datasets/gr_logistics/results/incremental/
+datasets/gr_logistics/results/pytorch/
+datasets/gr_logistics/results/storage/
 # Byte-compiled / optimized / DLL files
 __pycache__/ 
 *.py[cod]
@@ -24,7 +33,6 @@ lib64/
 parts/
 sdist/
 var/
-datasets/
 wheels/
 share/python-wheels/
 *.egg-info/

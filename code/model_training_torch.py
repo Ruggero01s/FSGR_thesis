@@ -12,6 +12,8 @@ from utils_torch import load_from_folder
 from plan import Plan
 from plan_generator_torch import PlanGeneratorMultiPerc, PlanGeneratorMultiPercAugmented
 
+import wandb
+
 
 class AttentionWeights(nn.Module):
     def __init__(self, max_dim):
@@ -47,15 +49,17 @@ class PlanModel(nn.Module):
         max_dim,
         embedding_dim=85,
         lstm_hidden=446,
-        dropout=0.12,
+        dropout=0.30,
+        
     ):
         super(PlanModel, self).__init__()
         self.max_dim = max_dim
 
         self.embedding = nn.Embedding(vocab_size + 1, embedding_dim, padding_idx=0)
         self.lstm = nn.LSTM(
-            embedding_dim, lstm_hidden, batch_first=True, dropout=dropout
+            embedding_dim, lstm_hidden, batch_first=True
         )
+        self.dropout = nn.Dropout(dropout)
         self.attention_weights = AttentionWeights(max_dim)
         self.context_vector = ContextVector()
         self.output_layer = nn.Linear(lstm_hidden, goal_size)
@@ -72,7 +76,9 @@ class PlanModel(nn.Module):
 
         # Apply mask to LSTM output
         lstm_output = lstm_output * mask.unsqueeze(-1)
-
+        
+        lstm_output = self.dropout(lstm_output)
+        
         attention_weights = self.attention_weights(
             lstm_output
         )  # (batch_size, seq_len, 1)
@@ -138,9 +144,9 @@ class CustomEarlyStopping:
         if self.iteration > 5:
             # Prioritize precision after iteration 5
             if val_precision > self.max_prec and val_loss < 1 and loss < 1:
-                print(
-                    f"New best model found with precision {val_precision:.4f} and loss {val_loss:.4f}"
-                )
+                message = f"New best model found with precision {val_precision:.4f} and loss {val_loss:.4f}"
+                print(message)
+                wandb.log({"early_stopping_event": message})
                 self.max_prec = val_precision
                 self.min_val_loss = val_loss
                 self.best_weights = model.state_dict().copy()
@@ -150,9 +156,9 @@ class CustomEarlyStopping:
                 abs(val_precision - self.max_prec) < 1e-5
                 and val_loss < self.min_val_loss
             ):
-                print(
-                    f"New best model found with precision {val_precision:.4f} and loss {val_loss:.4f}"
-                )
+                message = f"New best model found with precision {val_precision:.4f} and loss {val_loss:.4f}"
+                print(message)
+                wandb.log({"early_stopping_event": message})
                 self.min_val_loss = val_loss
                 self.best_weights = model.state_dict().copy()
                 self.increased_epochs = 0
@@ -160,7 +166,9 @@ class CustomEarlyStopping:
         else:
             # Prioritize loss for first iterations
             if val_loss < self.min_val_loss and loss < 1 and val_loss < 1:
-                print(f"New best model found with loss {val_loss:.4f}")
+                message = f"New best model found with loss {val_loss:.4f}"
+                print(message)
+                wandb.log({"early_stopping_event": message})
                 self.min_val_loss = val_loss
                 self.best_weights = model.state_dict().copy()
                 self.increased_epochs = 0
@@ -173,7 +181,7 @@ class CustomEarlyStopping:
 
 
 def train_model(
-    model, train_loader, val_loader, epochs, device, lr, early_stopping=None
+    model, train_loader, val_loader, epochs, device, lr, early_stopping=None, iteration=None
 ):
     """Train the model"""
     criterion = nn.BCELoss()
@@ -229,11 +237,29 @@ def train_model(
             f"  Val Loss: {val_loss:.4f}, Val Hamming: {val_hamming:.4f}, Val Precision: {val_precision:.4f}"
         )
 
+        # Log to wandb
+        log_dict = {
+            "epoch": epoch + 1,
+            "train_loss": train_loss,
+            "train_hamming": train_hamming,
+            "train_precision": train_precision,
+            "val_loss": val_loss,
+            "val_hamming": val_hamming,
+            "val_precision": val_precision,
+            "learning_rate": lr,
+        }
+        
+        if iteration is not None:
+            log_dict["iteration"] = iteration
+            
+        wandb.log(log_dict)
+
         # Early stopping
         if early_stopping and early_stopping(
             val_loss, val_precision, train_loss, model
         ):
             print(f"Early stopping triggered at epoch {epoch+1}")
+            wandb.log({"early_stopping_epoch": epoch + 1})
             if early_stopping.best_weights is not None:
                 model.load_state_dict(early_stopping.best_weights)
                 print("Best model weights restored")
@@ -318,13 +344,37 @@ if __name__ == "__main__":
     old_plans_percentage = 1  # Fraction of previous plans to include
     min_perc = 0.3  # Minimum fraction of plan to use
     max_perc = 1  # Maximum fraction of plan to use
-    max_dim = 31  # Maximum plan length
+    max_dim = 32  # Maximum plan length #! needs to be set appropriately for the dataset
     epochs = 30  # Epochs per iteration
     patience = 5  # Early stopping patience
 
     # Data augmentation:
     augmentation_plans = 4  # Number of plans to augment per batch
     use_full_plan = True  # Whether to include complete plan in augmentation
+
+    
+    
+    # Initialize wandb
+    wandb.init(
+        project="fsgr-plan-training",
+        name=f"incremental_{'test' if test else 'full'}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}",
+        config={
+            "increment": increment,
+            "batch_size": batch_size,
+            "old_plans_percentage": old_plans_percentage,
+            "min_perc": min_perc,
+            "max_perc": max_perc,
+            "max_dim": max_dim,
+            "epochs": epochs,
+            "patience": patience,
+            "augmentation_plans": augmentation_plans,
+            "use_full_plan": use_full_plan,
+            "incremental": incremental,
+            "test_mode": test,
+            "device": str(device),
+            "random_model": random_model,
+        }
+    )
 
     os.makedirs(target_dir, exist_ok=True)
     os.makedirs(temp_dir, exist_ok=True)
@@ -334,6 +384,11 @@ if __name__ == "__main__":
         dict_dir, ["action_dict.pkl", "goal_dict.pkl"]
     )
 
+    # Log dataset info
+    wandb.log({
+        "vocab_size": len(action_dict),
+        "goal_size": len(goals_dict),
+    })
     if live_test or results:
         [test_plans] = load_from_folder(plans_dir, ["test_plans"])
         test_generator = PlanGeneratorMultiPerc(
@@ -357,6 +412,12 @@ if __name__ == "__main__":
             f"Training on {len(train_plans)} plans, validation on {len(val_plans)} plans"
         )
 
+        # Log dataset sizes
+        wandb.log({
+            "train_plans_count": len(train_plans),
+            "val_plans_count": len(val_plans),
+        })
+
         # Create validation loader
         val_generator = PlanGeneratorMultiPerc(
             val_plans,
@@ -378,6 +439,7 @@ if __name__ == "__main__":
             iterations = len(train_plans) // (increment * batch_size)
 
         print(f"Iterations: {iterations}")
+        wandb.log({"total_iterations": iterations})
 
         if incremental:
             for iteration in range(iterations):
@@ -389,7 +451,21 @@ if __name__ == "__main__":
                 train_plans_subset = train_plans[start_index:end_index]
 
                 # Learning rate schedule
-                lr = np.linspace(0.001, 0.00001, iterations)[iteration]
+                lr = np.linspace(0.001, 0.0001, iterations)[iteration]
+
+                # Log iteration info
+                if iteration < 10:
+                    wandb.log({
+                        "iteration": f"00{iteration}",
+                        "current_learning_rate": lr,
+                        "train_plans_subset_size": len(train_plans_subset),
+                    })
+                else:   
+                    wandb.log({
+                        "iteration": f"0{iteration}",
+                        "current_learning_rate": lr,
+                        "train_plans_subset_size": len(train_plans_subset),
+                    })
 
                 # Add old plans if not first iteration
                 if start_index > 0:
@@ -419,15 +495,38 @@ if __name__ == "__main__":
                     f"Iteration {iteration} - Training on {len(train_generator.plans)} plans, in {train_generator.num_batches} batches"
                 )
 
+                # Log training info
+                if iteration < 10:
+                    wandb.log({
+                        f"iteration_00{iteration}/total_plans": len(train_generator.plans),
+                        f"iteration_00{iteration}/num_batches": train_generator.num_batches,
+                    })
+                else:
+                    wandb.log({
+                        f"iteration_0{iteration}/total_plans": len(train_generator.plans),
+                        f"iteration_0{iteration}/num_batches": train_generator.num_batches,
+                    })
+
                 # Create or load model
                 if iteration == 0:
                     model = PlanModel(
                         vocab_size=len(action_dict),
                         goal_size=len(goals_dict),
                         max_dim=max_dim,
+                        embedding_dim=85,
+                        lstm_hidden=446,
+                        dropout=1,
                     )
                     model.to(device)
                     print(f"Model created")
+                    
+                    wandb.log({
+                        "model_architecture": str(model),
+                        "model_parameters": sum(p.numel() for p in model.parameters() if p.requires_grad),
+                    })
+                    
+                    # Log model info
+                    wandb.watch(model, log="all")
                 else:
                     # Load previous model
                     model_path = path.join(target_dir, f"model_{iteration-1}.pth")
@@ -451,6 +550,7 @@ if __name__ == "__main__":
                         device,
                         lr,
                         early_stopping,
+                        iteration=iteration,
                     )
 
                 # Save model
@@ -468,6 +568,18 @@ if __name__ == "__main__":
                         save_dir=target_dir,
                         filename=f"metrics_{iteration}",
                     )
+                    
+                    # Log test metrics
+                    if iteration < 10:
+                        wandb.log({
+                            f"iteration_00{iteration}/test_accuracy": scores[0],
+                            f"iteration_00{iteration}/test_hamming_loss": scores[1],
+                        })
+                    else:
+                        wandb.log({
+                            f"iteration_0{iteration}/test_accuracy": scores[0],
+                            f"iteration_0{iteration}/test_hamming_loss": scores[1],
+                        })
         else:
             # Non-incremental training
             lr = 0.0001
@@ -535,3 +647,6 @@ if __name__ == "__main__":
                 save_dir=path.dirname(model_path),
                 filename=f"metrics_{iteration}",
             )
+    
+    # Close wandb run
+    wandb.finish()

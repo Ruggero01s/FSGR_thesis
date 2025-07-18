@@ -40,29 +40,45 @@ class PlanModel(nn.Module):
         max_dim,
         embedding_dim=85,
         lstm_hidden=446,
-        dropout=0.12,
+        dropout=0.30,
     ):
         super(PlanModel, self).__init__()
         self.max_dim = max_dim
 
         self.embedding = nn.Embedding(vocab_size + 1, embedding_dim, padding_idx=0)
         self.lstm = nn.LSTM(
-            embedding_dim, lstm_hidden, batch_first=True, dropout=dropout
+            embedding_dim, lstm_hidden, batch_first=True
         )
+        self.dropout = nn.Dropout(dropout)
         self.attention_weights = AttentionWeights(max_dim)
         self.context_vector = ContextVector()
         self.output_layer = nn.Linear(lstm_hidden, goal_size)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
-        embedded = self.embedding(x)
-        mask = (x != 0).float()
-        lstm_output, _ = self.lstm(embedded)
+        # x shape: (batch_size, seq_len)
+        embedded = self.embedding(x)  # (batch_size, seq_len, embedding_dim)
+
+        # Create mask for padded elements
+        mask = (x != 0).float()  # (batch_size, seq_len)
+
+        lstm_output, _ = self.lstm(embedded)  # (batch_size, seq_len, lstm_hidden)
+
+        # Apply mask to LSTM output
         lstm_output = lstm_output * mask.unsqueeze(-1)
-        attention_weights = self.attention_weights(lstm_output)
-        context = self.context_vector(lstm_output, attention_weights)
-        output = self.output_layer(context)
+        
+        lstm_output = self.dropout(lstm_output)
+        
+        attention_weights = self.attention_weights(
+            lstm_output
+        )  # (batch_size, seq_len, 1)
+        context = self.context_vector(
+            lstm_output, attention_weights
+        )  # (batch_size, lstm_hidden)
+
+        output = self.output_layer(context)  # (batch_size, goal_size)
         output = self.sigmoid(output)
+
         return output
 
 
@@ -70,7 +86,7 @@ def get_precision_test(model_path: str, model_number: int):
     """Load precision test results from metrics file"""
     try:
         metrics_file = path.join(
-            os.path.dirname(model_path), f"metrics_{model_number}.txt"
+            model_path, f"metrics_{model_number}.txt"
         )
         with open(metrics_file, "r") as f:
             lines = f.readlines()
@@ -372,7 +388,7 @@ def run(
         model = PlanModel(
             vocab_size=len(dizionario),
             goal_size=len(dizionario_goal),
-            max_dim=31,  # Adjust based on your model
+            max_dim=max_dim,  # Adjust based on your model
         )
         model.load_state_dict(torch.load(model_file, map_location=device))
         model.to(device)
@@ -391,10 +407,15 @@ def run(
         print(f"Error loading test plans: {e}")
         return
 
+    
+    
     max_dim = int(max_plan_perc * max_dim)
-
+    
+    target_dir = path.join(target_dir, f"model_{model_number}")
     os.makedirs(target_dir, exist_ok=True)
-
+    
+    for set in test_plans:
+        print(len(set))
     for i, plans in enumerate(test_plans):
         all_goals = get_goals(plans, dizionario_goal)
         filename = f"network_results_{filenames[i]}.txt"
@@ -405,9 +426,9 @@ def run(
             for f in sel_filenames
             if f.endswith(".pddl") and not f.startswith("domain")
         ]
-
+        
         target_file = path.join(target_dir, filename)
-
+        
         for perc_action in [0.3, 0.5, 0.7]:
             gen = PlanGenerator(
                 plans,
@@ -421,7 +442,6 @@ def run(
 
             for j in range(gen.__len__()):
                 plan_name = gen.plans[j].plan_name
-
                 if plan_name.split("-", 2)[2].split(".", 1)[0] in sel_filenames:
                     goal_number = get_goal_number(plan_name)
                     x, y = gen.__getitem__(j)
@@ -452,7 +472,7 @@ def run(
 
                     elapsed = time.time() - start
                     res = [out, goal_number, scores, pred_scores]
-
+                    
                     save_results_json(
                         target_file,
                         res,
@@ -463,9 +483,9 @@ def run(
                         all_goals,
                     )
 
-                    print(
-                        f"Processed: {plan_name}, Result: {out}, Time: {elapsed:.4f}s"
-                    )
+                    # print(
+                    #     f"Processed: {plan_name}, Result: {out}, Time: {elapsed:.4f}s"
+                    # )
 
 
 if __name__ == "__main__":
