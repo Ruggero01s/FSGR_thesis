@@ -9,3 +9,12 @@ vedere dove arriva il modello, se è decente vediamo di andare a togliere dal tr
 nel fare i result con get pred and result aggiungere campo per recognizability
 
 da fast downward prendere anche problemi che non hanno tutte le versioni
+
+
+
+
+
+sembra che anche mettendo 0, 0.001 non aumenti particolarmente l'uso, può essere che non trova una precision per un certo goal?
+
+se si mette 0, 0 ovviamente usa sempre solo sistema 1 quindi le threshold non sono rotte in se.
+
