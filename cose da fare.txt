@@ -18,3 +18,22 @@ sembra che anche mettendo 0, 0.001 non aumenti particolarmente l'uso, può esser
 
 se si mette 0, 0 ovviamente usa sempre solo sistema 1 quindi le threshold non sono rotte in se.
 
+
+lavorare sul non mettere in train le cose che passano
+ lavorare per batch (ricordarsi di arrivare a dimensione giusta per l'incremento)
+
+modificare threshold
+
+fare un analisi statistica su valore predizioni giuste e valore predizioni sbagliate
+    - perchè non prendere un top k? non sappiamo k immagino perchè nel domain il numero di fluenti in un goal cambia
+    - threshold dinamiche? fare un analisi sul vettore della predizione e mettere threshold in base a distribuzione
+    
+
+
+provando a tweakkare la threshold si osserva il trend generale dove l'accuracy non sembra cambiare particolarmente finche non si scende sotto i 0.2 di approx (ovvero se > 0.2 then 1 else 0)
+
+ho provato per estremo a vedere 0.05 come threshold aspettandomi il finimondo e seppur non sia bello, sembra dire che la rete abbia abbastanza imparato a tenere molto vicino a 0 le cose che devono essere 0 (questo ha senso pensando che la trainiamo con binary cross entropy e quindi viene penalizzata molto quando si discosta dai valori giusti, essendo la maggior parte 0, sta imparando prima a tenere a zero le cose che devono essere a zero e poi piano piano sta alzando le cose che devono essere a 1).
+
+Probabilmente quindi dandogli ancora altri piani dovrebbe migliorare in quella direzione, vedremo.
+
+Ho fatto qualche test che trovate nella cartella 

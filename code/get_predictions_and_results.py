@@ -1,4 +1,4 @@
-import click
+import argparse
 from plan_generator_torch import PlanGeneratorMultiPerc, PlanGenerator
 import torch
 import torch.nn as nn
@@ -293,69 +293,19 @@ def get_goals(plans: list, dizionario_goal: dict) -> dict:
     return goals_dict
 
 
-@click.command()
-@click.option(
-    "--model-path",
-    "-m",
-    "model_path",
-    type=click.Path(exists=True),
-    help="Folder containing the models",
-    required=True,
-)
-@click.option(
-    "--model-number",
-    "-n",
-    "model_number",
-    type=click.INT,
-    help="Number of the model to use",
-    required=True,
-)
-@click.option(
-    "--read-dict-dir",
-    "-d",
-    "read_dict_dir",
-    type=click.Path(exists=True),
-    help="Folder containing the dictionaries",
-    required=True,
-)
-@click.option(
-    "--read-test-plans-dir",
-    "-s",
-    "read_test_plans_dir",
-    type=click.Path(exists=True),
-    help="Folder containing the testsets plans",
-    required=True,
-)
-@click.option(
-    "--target-dir",
-    "target_dir",
-    "-t",
-    type=click.Path(exists=False),
-    help="Folder where to save the results",
-    required=True,
-)
-@click.option(
-    "--max-plan-dim",
-    "max_dim",
-    type=click.INT,
-    help="Maximum number of actions in a plan",
-    default=100,
-)
-@click.option(
-    "--max-plan-perc",
-    "max_plan_perc",
-    type=click.FLOAT,
-    help="Maximum percentage of actions in a plan",
-    default=1,
-)
-@click.option(
-    "--problems-dir",
-    "problems_dir",
-    "-p",
-    type=click.Path(exists=True),
-    help="Folder containing the problems",
-    required=True,
-)
+def get_all_model_numbers(model_path):
+    """Discover all model files in the model_path and return their numbers."""
+    model_numbers = []
+    for file in os.listdir(model_path):
+        if file.startswith("model_") and file.endswith(".pth"):
+            try:
+                model_num = int(file.replace("model_", "").replace(".pth", ""))
+                model_numbers.append(model_num)
+            except ValueError:
+                continue
+    return sorted(model_numbers)
+
+
 def run(
     model_path,
     model_number,
@@ -382,22 +332,20 @@ def run(
         print(f"Error loading dictionaries: {e}")
         return
 
-    # Load model
-    model_file = path.join(model_path, f"model_{model_number}.pth")
-    try:
-        model = PlanModel(
-            vocab_size=len(dizionario),
-            goal_size=len(dizionario_goal),
-            max_dim=max_dim,  # Adjust based on your model
-        )
-        model.load_state_dict(torch.load(model_file, map_location=device))
-        model.to(device)
-        model.eval()
-        print("Model loaded successfully")
-    except Exception as e:
-        print(f"Error loading model: {e}")
-        return
-
+    print("Model number:", model_number)
+    if model_number == "ALL":
+        # Get all models in the directory
+        model_numbers = get_all_model_numbers(model_path)
+        if not model_numbers:
+            print("No models found in the specified directory.")
+            raise FileNotFoundError("Model files not found in the specified directory.")
+    else:
+        # Use the specified model number
+        model_numbers = [int(model_number)]
+        if not path.exists(path.join(model_path, f"model_{model_numbers[0]}.pth")):
+            print(f"Model file model_{model_numbers[0]}.pth does not exist in the specified directory.")
+            raise FileNotFoundError(f"Model file model_{model_numbers[0]}.pth not found.")
+    
     # Load test plans
     filenames = os.listdir(read_test_plans_dir)
     try:
@@ -406,87 +354,176 @@ def run(
     except Exception as e:
         print(f"Error loading test plans: {e}")
         return
-
-    
-    
-    max_dim = int(max_plan_perc * max_dim)
-    
-    target_dir = path.join(target_dir, f"model_{model_number}")
-    os.makedirs(target_dir, exist_ok=True)
-    
-    for set in test_plans:
-        print(len(set))
-    for i, plans in enumerate(test_plans):
-        all_goals = get_goals(plans, dizionario_goal)
-        filename = f"network_results_{filenames[i]}.txt"
-
-        sel_filenames = os.listdir(problems_dir)
-        sel_filenames = [
-            f.rsplit(".", 1)[0]
-            for f in sel_filenames
-            if f.endswith(".pddl") and not f.startswith("domain")
-        ]
         
-        target_file = path.join(target_dir, filename)
+    # Calculate max dimension based on percentage
+    adj_max_dim = int(max_plan_perc * max_dim)
+    
+    # Process each model
+    for curr_model_number in model_numbers:
+        print(f"Processing model {curr_model_number}...")
         
-        for perc_action in [0.3, 0.5, 0.7]:
-            gen = PlanGenerator(
-                plans,
-                dizionario,
-                dizionario_goal,
-                1,
-                max_dim,
-                perc_action,
-                shuffle=False,
+        # Load model
+        model_file = path.join(model_path, f"model_{curr_model_number}.pth")
+        try:
+            model = PlanModel(
+                vocab_size=len(dizionario),
+                goal_size=len(dizionario_goal),
+                max_dim=max_dim,
             )
+            model.load_state_dict(torch.load(model_file, map_location=device))
+            model.to(device)
+            model.eval()
+            print(f"Model {curr_model_number} loaded successfully")
+        except Exception as e:
+            print(f"Error loading model {curr_model_number}: {e}")
+            continue
 
-            for j in range(gen.__len__()):
-                plan_name = gen.plans[j].plan_name
-                if plan_name.split("-", 2)[2].split(".", 1)[0] in sel_filenames:
-                    goal_number = get_goal_number(plan_name)
-                    x, y = gen.__getitem__(j)
+        # Create output directory for this model
+        curr_target_dir = path.join(target_dir, f"model_{curr_model_number}")
+        os.makedirs(curr_target_dir, exist_ok=True)
+        
+        for i, plans in enumerate(test_plans):
+            all_goals = get_goals(plans, dizionario_goal)
+            filename = f"network_results_{filenames[i]}.txt"
 
-                    # Convert to PyTorch tensor
-                    x_tensor = torch.tensor(x, dtype=torch.long).to(device)
+            sel_filenames = os.listdir(problems_dir)
+            sel_filenames = [
+                f.rsplit(".", 1)[0]
+                for f in sel_filenames
+                if f.endswith(".pddl") and not f.startswith("domain")
+            ]
+            
+            target_file = path.join(curr_target_dir, filename)
+            
+            for perc_action in [0.3, 0.5, 0.7]:
+                gen = PlanGenerator(
+                    plans,
+                    dizionario,
+                    dizionario_goal,
+                    1,
+                    adj_max_dim,
+                    perc_action,
+                    shuffle=False,
+                )
 
-                    start = time.time()
-                    with torch.no_grad():
-                        y_pred = model(x_tensor)
-                        y_pred_np = y_pred.cpu().numpy()
+                for j in range(gen.__len__()):
+                    plan_name = gen.plans[j].plan_name
+                    if plan_name.split("-", 2)[2].split(".", 1)[0] in sel_filenames:
+                        goal_number = get_goal_number(plan_name)
+                        x, y = gen.__getitem__(j)
 
-                    precision_test = get_precision_test(model_path, model_number)
-                    if precision_test is not None:
-                        precision_pred = np.multiply(
-                            precision_test, [1 if y > 0.5 else 0 for y in y_pred_np[0]]
+                        # Convert to PyTorch tensor
+                        x_tensor = torch.tensor(x, dtype=torch.long).to(device)
+
+                        start = time.time()
+                        with torch.no_grad():
+                            y_pred = model(x_tensor)
+                            y_pred_np = y_pred.cpu().numpy()
+
+                        precision_test = get_precision_test(model_path, curr_model_number)
+                        if precision_test is not None:
+                            precision_pred = np.multiply(
+                                precision_test, [1 if y > 0.05 else 0 for y in y_pred_np[0]]
+                            )
+                        else:
+                            precision_pred = y_pred_np[0]
+
+                        scores = get_scores(y_pred_np[0], all_goals)
+                        pred_scores = get_scores(precision_pred, all_goals, True)
+
+                        if scores is not None:
+                            out = get_result(scores, goal_number)
+                        else:
+                            out = False
+
+                        elapsed = time.time() - start
+                        res = [out, goal_number, scores, pred_scores]
+                        
+                        save_results_json(
+                            target_file,
+                            res,
+                            path.basename(plan_name),
+                            f"model_{curr_model_number}",
+                            perc_action,
+                            elapsed,
+                            all_goals,
                         )
-                    else:
-                        precision_pred = y_pred_np[0]
 
-                    scores = get_scores(y_pred_np[0], all_goals)
-                    pred_scores = get_scores(precision_pred, all_goals, True)
+        print(f"Completed processing for model {curr_model_number}")
 
-                    if scores is not None:
-                        out = get_result(scores, goal_number)
-                    else:
-                        out = False
 
-                    elapsed = time.time() - start
-                    res = [out, goal_number, scores, pred_scores]
-                    
-                    save_results_json(
-                        target_file,
-                        res,
-                        path.basename(plan_name),
-                        f"model_{model_number}",
-                        perc_action,
-                        elapsed,
-                        all_goals,
-                    )
-
-                    # print(
-                    #     f"Processed: {plan_name}, Result: {out}, Time: {elapsed:.4f}s"
-                    # )
+def parse_arguments():
+    """Parse command-line arguments"""
+    parser = argparse.ArgumentParser(description="Run goal recognition predictions")
+    
+    parser.add_argument(
+        "--model-path", "-m", 
+        required=True,
+        help="Folder containing the models",
+        type=str
+    )
+    
+    parser.add_argument(
+        "--model-number", "-n",
+        default="ALL",
+        help="Number of the model to use (default: process all models)",
+        type=str
+    )
+    
+    parser.add_argument(
+        "--read-dict-dir", "-d",
+        required=True,
+        help="Folder containing the dictionaries",
+        type=str
+    )
+    
+    parser.add_argument(
+        "--read-test-plans-dir", "-s",
+        required=True,
+        help="Folder containing the testsets plans",
+        type=str
+    )
+    
+    parser.add_argument(
+        "--target-dir", "-t",
+        required=True,
+        help="Folder where to save the results",
+        type=str
+    )
+    
+    parser.add_argument(
+        "--max-plan-dim",
+        default=100,
+        help="Maximum number of actions in a plan (default: 100)",
+        type=int
+    )
+    
+    parser.add_argument(
+        "--max-plan-perc",
+        default=1.0,
+        help="Maximum percentage of actions in a plan (default: 1.0)",
+        type=float
+    )
+    
+    parser.add_argument(
+        "--problems-dir", "-p",
+        required=True,
+        help="Folder containing the problems",
+        type=str
+    )
+    
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
-    run()
+    args = parse_arguments()
+    run(
+        model_path=args.model_path,
+        model_number=args.model_number,
+        read_dict_dir=args.read_dict_dir,
+        read_test_plans_dir=args.read_test_plans_dir,
+        target_dir=args.target_dir,
+        problems_dir=args.problems_dir,
+        max_dim=args.max_plan_dim,
+        max_plan_perc=args.max_plan_perc,
+    )
