@@ -67,11 +67,14 @@ class PlanModel(nn.Module):
 
     def forward(self, x):
         # x shape: (batch_size, seq_len)
+        
         embedded = self.embedding(x)  # (batch_size, seq_len, embedding_dim)
 
         # Create mask for padded elements
         mask = (x != 0).float()  # (batch_size, seq_len)
-
+        if len(embedded.shape) > 3:
+            print(embedded.shape)
+            print(embedded)
         lstm_output, _ = self.lstm(embedded)  # (batch_size, seq_len, lstm_hidden)
 
         # Apply mask to LSTM output
@@ -110,7 +113,7 @@ def custom_hamming_loss(y_pred, y_true):
     y_pred = y_pred.float()
     y_true = y_true.float()
     diff = torch.abs(y_true - y_pred)
-    mismatches = (diff > 0.5).float()
+    mismatches = (diff > 0.5).float() #todo threshold to consider 1/0 rounding
     return torch.mean(mismatches)
 
 

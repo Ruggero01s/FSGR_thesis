@@ -34,6 +34,11 @@ provando a tweakkare la threshold si osserva il trend generale dove l'accuracy n
 
 ho provato per estremo a vedere 0.05 come threshold aspettandomi il finimondo e seppur non sia bello, sembra dire che la rete abbia abbastanza imparato a tenere molto vicino a 0 le cose che devono essere 0 (questo ha senso pensando che la trainiamo con binary cross entropy e quindi viene penalizzata molto quando si discosta dai valori giusti, essendo la maggior parte 0, sta imparando prima a tenere a zero le cose che devono essere a zero e poi piano piano sta alzando le cose che devono essere a 1).
 
-Probabilmente quindi dandogli ancora altri piani dovrebbe migliorare in quella direzione, vedremo.
+Probabilmente quindi dandogli ancora altri piani dovrebbe migliorare in quella direzione
 
-Ho fatto qualche test che trovate nella cartella 
+
+
+
+
+Riguardo adaptive incremental training,
+ - come gestire quando non si
