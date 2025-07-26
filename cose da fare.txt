@@ -41,4 +41,15 @@ Probabilmente quindi dandogli ancora altri piani dovrebbe migliorare in quella d
 
 
 Riguardo adaptive incremental training,
- - come gestire quando non si
+Fasi principali:
+    - carica i dict vari
+    - inizializza il modello
+    - divide in remaining_plans(listone di tutti i piani che rimangono), passed_plans(passano MC) e trained_plans(usati per training)
+    - parte il ciclo di train adaptive
+        [- opzionalmente si selezionano un tot di piani di review (ovvero che hanno superato il MC in passato, da riguardare se passano ancora, se non passano, si tirano nella lista di piani che non hanno passato e verrano usati per train)]
+        - scorro remaining_plans e mando in eval piani, prendo le predizioni, le raccolgo e faccio come MC finchè non arrivo ad un tot di piani "falliti" per fare una batch
+        - aggiungo i piani vecchi a questi secondo old_plans_factor
+        - traino il modello per questa experience
+        - salvo i piani che ho usato per trainare
+        - ripeto finchè non finisco remaining_plans (non ne ho abbastanza per fare un'experience)
+

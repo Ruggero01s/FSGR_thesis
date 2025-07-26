@@ -239,7 +239,7 @@ def adaptive_incremental_training(
     passed_plans = []  # Plans that passed evaluation
     trained_plans = []  # Plans that were actually used for training
     iteration = 0
-    review_pool = deque(maxlen=min(1000, len(train_plans)))  # Fixed-size pool of passed plans for review
+    #! review_pool = deque(maxlen=min(1000, len(train_plans)))  # Fixed-size pool of passed plans for review
     
     # Initialize precision history
     precision_dict = None
@@ -249,13 +249,13 @@ def adaptive_incremental_training(
         print(f"\n=== Iteration {iteration} ===")
         print(f"Remaining plans: {len(remaining_plans)}, Passed plans: {len(passed_plans)}")
         
-        # Decide whether to review some passed plans
-        #todo
+        
+        # Sample plans for review 
         review_plans = []
-        if review_frequency > 0 and iteration > 0 and review_pool:
+        #! if review_frequency > 0 and iteration > 0 and review_pool:
+        if review_frequency > 0 and iteration > 0 and len(passed_plans) > review_sample_size:
             if iteration % review_frequency == 0:
-                review_size = min(review_sample_size, len(review_pool))
-                review_plans = random.sample(list(review_pool), review_size)
+                review_plans = random.sample(list(passed_plans), review_sample_size)
                 print(f"Reviewing {len(review_plans)} previously passed plans")
         
         # Collect failed plans for this iteration
@@ -301,7 +301,6 @@ def adaptive_incremental_training(
             plan = plans_to_evaluate[plan_idx]
             plan_data = temp_generator[plan_idx]
             
-            # Use evaluate_plan function with precision history
             passed, metrics = evaluate_plan(
                 model, 
                 plan_data, 
@@ -312,7 +311,7 @@ def adaptive_incremental_training(
                 precision_dict=precision_dict
             )
             
-            # Track detailed metrics for analysis
+            # Track metrics 
             plan_evaluations.append({
                 "plan_id": plan.plan_name,
                 "passed": passed,
@@ -327,7 +326,6 @@ def adaptive_incremental_training(
                 if plan in remaining_plans:
                     remaining_plans.remove(plan)
                     passed_plans.append(plan)
-                    review_pool.append(plan)
                     newly_passed_plans.append(plan)
             else:
                 if plan in remaining_plans:
@@ -335,19 +333,9 @@ def adaptive_incremental_training(
                 elif plan in passed_plans and plan in review_plans:
                     # Plan previously passed but now fails review
                     failed_review_counter +=1
-                    # print(f"Plan {plan.plan_name} failed review, moving back to training queue")
                     passed_plans.remove(plan)  # Remove from passed plans
                     remaining_plans.append(plan)  # Add back to remaining plans
                     failed_plans.append(plan)  # Add to failed plans for this iteration
-                    
-                    # Remove from review pool if present
-                    if plan in review_pool:
-                        review_pool.remove(plan)
-                        
-                    # Log this event
-                    wandb.log({
-                        f"iteration_{iteration:03d}/plans_failed_review": 1,
-                    }, commit=False)  # Don't commit yet to batch with other metrics
             
             if i % 100 == 0:
                 print(f"  Evaluated {i}/{len(plans_to_evaluate)} plans, " 
@@ -363,6 +351,7 @@ def adaptive_incremental_training(
             f"iteration_{iteration:03d}/plans_evaluated": len(plan_evaluations),
             f"iteration_{iteration:03d}/plans_passed": len(newly_passed_plans),
             f"iteration_{iteration:03d}/plans_failed": len(failed_plans),
+            f"iteration_{iteration:03d}/plans_failed_review": failed_review_counter,
             f"iteration_{iteration:03d}/pass_rate": pass_rate,
             f"iteration_{iteration:03d}/remaining_plans": len(remaining_plans),
             f"iteration_{iteration:03d}/total_passed_plans": len(passed_plans),
@@ -499,7 +488,7 @@ if __name__ == "__main__":
         "augmentation_plans": 4,
         "use_full_plan": True,
         "review_frequency": 1,  # Review passed examples every N iterations
-        "review_sample_size": 128,  # Number of passed examples to review
+        "review_sample_size": 256,  # Number of passed examples to review
         "confidence_threshold": 0.04,  # difference between top two goal scores must be minimum this value
         "experience_threshold": 0.7,    # avg precision of predicted goal must be minimum this value
         "old_plans_factor": 1,  # %(in relation to size of incremnet) of previously used plans to add to each increment e.g. 0.5 means increment will be 150% standard size where 50% are old plans

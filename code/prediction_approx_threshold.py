@@ -396,10 +396,16 @@ def main(model_path, model_number, dict_dir, test_plans_dir, num_samples,
             
         set_name = filenames[i].split('.')[0] if i < len(filenames) else f"set_{i}"
         #if want test set plot pass output_dir
-        result = analyze_test_set(
-            model, test_set, dizionario, dizionario_goal,
-            device, max_dim, perc_action, num_samples, set_name
-        )
+        result = analyze_test_set(model=model,
+                                  test_set=test_set,
+                                  dizionario=dizionario,
+                                  dizionario_goal=dizionario_goal,
+                                  device=device,
+                                  max_dim=max_dim,
+                                  perc_action=perc_action,
+                                  num_samples=num_samples,
+                                #   output_dir=output_dir,
+                                  set_name=set_name)
         
         if result:
             all_results.append(result)
@@ -445,15 +451,6 @@ def main(model_path, model_number, dict_dir, test_plans_dir, num_samples,
     print(f"Best accuracy threshold: {recommendations['accuracy']:.4f}")
     print(f"Best F1 score threshold: {recommendations['f1']:.4f}")
     print(f"Best balanced threshold: {recommendations['balanced']:.4f}")
-    print(f"Current threshold in your code: 0.3000")
-    
-    # Final recommendation
-    print("\nFINAL RECOMMENDATION:")
-    recommended_threshold = recommendations['f1']  # Using F1 as the primary metric
-    if abs(recommended_threshold - 0.3) < 0.05:
-        print(f"Your current threshold of 0.3 is close to optimal (recommended: {recommended_threshold:.4f}).")
-    else:
-        print(f"Consider changing your threshold from 0.3 to {recommended_threshold:.4f} to optimize F1 score.")
 
 if __name__ == "__main__":
     main()

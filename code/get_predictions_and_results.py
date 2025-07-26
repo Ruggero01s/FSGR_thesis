@@ -423,7 +423,7 @@ def run(
                         precision_test = get_precision_test(model_path, curr_model_number)
                         if precision_test is not None:
                             precision_pred = np.multiply(
-                                precision_test, [1 if y > 0.05 else 0 for y in y_pred_np[0]]
+                                precision_test, [1 if y > 0.2 else 0 for y in y_pred_np[0]]
                             )
                         else:
                             precision_pred = y_pred_np[0]
