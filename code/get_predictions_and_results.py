@@ -315,6 +315,7 @@ def run(
     problems_dir,
     max_dim,
     max_plan_perc,
+    threshold,
 ):
     """Main function to run goal recognition predictions"""
 
@@ -423,7 +424,7 @@ def run(
                         precision_test = get_precision_test(model_path, curr_model_number)
                         if precision_test is not None:
                             precision_pred = np.multiply(
-                                precision_test, [1 if y > 0.2 else 0 for y in y_pred_np[0]]
+                                precision_test, [1 if y > threshold else 0 for y in y_pred_np[0]]
                             )
                         else:
                             precision_pred = y_pred_np[0]
@@ -512,6 +513,13 @@ def parse_arguments():
         type=str
     )
     
+    parser.add_argument(
+        "--threshold", "-th",
+        default=0.5,
+        help="Threshold for rounding 1/0 (default: 0.5)",
+        type=float
+    )
+    
     return parser.parse_args()
 
 
@@ -526,4 +534,5 @@ if __name__ == "__main__":
         problems_dir=args.problems_dir,
         max_dim=args.max_plan_dim,
         max_plan_perc=args.max_plan_perc,
+        threshold=args.threshold
     )

@@ -44,12 +44,18 @@ Riguardo adaptive incremental training,
 Fasi principali:
     - carica i dict vari
     - inizializza il modello
-    - divide in remaining_plans(listone di tutti i piani che rimangono), passed_plans(passano MC) e trained_plans(usati per training)
+    - divisione in remaining_plans(listone di tutti i piani che rimangono da elaborare), passed_plans(quelli che passano MC) e trained_plans(effettivamente usati per training)
     - parte il ciclo di train adaptive
-        [- opzionalmente si selezionano un tot di piani di review (ovvero che hanno superato il MC in passato, da riguardare se passano ancora, se non passano, si tirano nella lista di piani che non hanno passato e verrano usati per train)]
-        - scorro remaining_plans e mando in eval piani, prendo le predizioni, le raccolgo e faccio come MC finchè non arrivo ad un tot di piani "falliti" per fare una batch
+        [- Review: opzionalmente si selezionano un tot a campione (dim scelta dall'utente) di piani di review (ovvero che hanno superato il MC in passato, da riguardare se passano ancora, se non passano, si tirano nella lista di piani che non hanno passato e verrano usati per train)]
+        - scorro remaining_plans e mando in eval i piani, prendo le predizioni, le raccolgo e le faccio passare al MC finchè non arrivo ad un tot di piani "falliti" per fare una experience
         - aggiungo i piani vecchi a questi secondo old_plans_factor
         - traino il modello per questa experience
         - salvo i piani che ho usato per trainare
-        - ripeto finchè non finisco remaining_plans (non ne ho abbastanza per fare un'experience)
+        - ripeto finchè non finisco remaining_plans (ovvero quando non ne ho abbastanza per fare un'experience)
 
+
+Osservazioni:
+    - le performance sembrano crescere più velocemente a parità di piani
+    - circa il 30% dei piani alla fine di tutto passa il MC, escono circa 11 experience invece di 16
+    - in train overfitta un sacco, come prima in realtà, la loss in validazione migliora solo la prima epoca che vede nuovi piani, anche aumentando dropout a 0.3 non sembra sistemare
+    - rimane il problema delle predizioni basse, bisogna vedere con più piani se diventa più confident, la threshold sembra si possa abbassare fino a 0.1 senza subire significative riduzioni in accuracy e quindi aumentando l'uso di S1.

@@ -12,6 +12,10 @@ merged_dataset/
 datasets/gr_logistics/results/incremental/
 datasets/gr_logistics/results/pytorch/
 datasets/gr_logistics/results/storage/
+datasets/gr_logistics/results/results_jsons/
+datasets/gr_logistics/results/results_jsons/adaptive/
+datasets/gr_logistics/results/results_jsons/incremental/
+datasets/gr_logistics/results/results_jsons/planner/
 # Byte-compiled / optimized / DLL files
 __pycache__/ 
 *.py[cod]

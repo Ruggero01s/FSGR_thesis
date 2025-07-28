@@ -102,50 +102,37 @@ def evaluate_plan(model, plan_data, goals_dict, device,
 
 def build_precision_history(model, val_loader, device):
     """
-    Build a precision history dictionary from test data to use in metacognition.
-    
-    Args:
-        model: The trained model
-        test_loader: DataLoader with test data
-        device: Computing device (CPU/GPU)
-        
-    Returns:
-        precision_dict: Dictionary mapping goal indices to historical precision
+    Build a precision history dictionary from validation data to use in metacognition.
+    Precision = True Positives / (True Positives + False Positives)
     """
     model.eval()
-    goal_correct_counts = {}
-    goal_total_counts = {}
+    true_positives = {}
+    false_positives = {}
     
     with torch.no_grad():
         for data, target in val_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
+            y_pred_binary = (output > 0.5).float()  # Convert to binary predictions
             
-            # Convert to binary predictions
-            y_pred_binary = (output > 0.5).float() #todo threshold for considering 1 / 0 rounding
-            
-            # For each goal/fluent, track correct predictions
+            # For each goal/fluent, track precision components
             for i in range(target.shape[1]):
-                if i not in goal_total_counts:
-                    goal_correct_counts[i] = 0
-                    goal_total_counts[i] = 0
+                if i not in true_positives:
+                    true_positives[i] = 0
+                    false_positives[i] = 0
                 
-                # For positive examples (where target is 1)
-                pos_mask = target[:, i] == 1
-                if torch.any(pos_mask):
-                    goal_correct_counts[i] += torch.sum((y_pred_binary[pos_mask, i] == 1).float()).item()
-                    goal_total_counts[i] += torch.sum(pos_mask).item()
-                
-                # For negative examples (where target is 0)
-                neg_mask = target[:, i] == 0
-                if torch.any(neg_mask):
-                    goal_correct_counts[i] += torch.sum((y_pred_binary[neg_mask, i] == 0).float()).item()
-                    goal_total_counts[i] += torch.sum(neg_mask).item()
+                # Where model predicted 1
+                pred_pos_mask = y_pred_binary[:, i] == 1
+                if torch.any(pred_pos_mask):
+                    # True positives: model predicted 1 and actual was 1
+                    true_positives[i] += torch.sum((target[pred_pos_mask, i] == 1).float()).item()
+                    # False positives: model predicted 1 but actual was 0
+                    false_positives[i] += torch.sum((target[pred_pos_mask, i] == 0).float()).item()
     
     # Calculate precision for each goal
     precision_dict = {
-        i: goal_correct_counts[i] / goal_total_counts[i] if goal_total_counts[i] > 0 else 0
-        for i in goal_total_counts
+        i: true_positives[i] / (true_positives[i] + false_positives[i]) if (true_positives[i] + false_positives[i]) > 0 else 0
+        for i in true_positives
     }
     
     return precision_dict
@@ -286,12 +273,11 @@ def adaptive_incremental_training(
         plan_evaluations = []  # Track evaluation results for logging
         failed_review_counter = 0
         
-        print(f"Evaluating plans until finding {target_fail_count} failures...")
-        
         # Update precision history every iteration using validation data
         print("Updating precision history from validation data...")
         precision_dict = build_precision_history(model, val_loader, device)
         
+        print(f"Evaluating plans until finding {target_fail_count} failures...")
         
         # Evaluate plans with metacognitive approach
         for i, plan_idx in enumerate(range(len(plans_to_evaluate))):
@@ -330,6 +316,7 @@ def adaptive_incremental_training(
             else:
                 if plan in remaining_plans:
                     failed_plans.append(plan)
+                    remaining_plans.remove(plan)
                 elif plan in passed_plans and plan in review_plans:
                     # Plan previously passed but now fails review
                     failed_review_counter +=1
@@ -341,7 +328,7 @@ def adaptive_incremental_training(
                 print(f"  Evaluated {i}/{len(plans_to_evaluate)} plans, " 
                       f"failed: {len(failed_plans)}, newly passed: {len(newly_passed_plans)}")
         
-        print(f"Finished evaluating {len(plans_to_evaluate)} plans.")
+        print(f"Finished evaluating plans.")
         print(f"Newly passed plans: {len(newly_passed_plans)}, Failed plans: {len(failed_plans)}")
         print(f"Plans that failed review: {failed_review_counter}")
         
@@ -484,7 +471,7 @@ if __name__ == "__main__":
         "max_perc": 1.0,
         "max_dim": 32,
         "epochs": 30,
-        "patience": 5,
+        "patience": 3,
         "augmentation_plans": 4,
         "use_full_plan": True,
         "review_frequency": 1,  # Review passed examples every N iterations
