@@ -40,6 +40,13 @@ Probabilmente quindi dandogli ancora altri piani dovrebbe migliorare in quella d
 
 
 
+Stra bello paper sul dropout LSTM che ha portato ad un'implementazione custom che risolve per la maggior parte l'overfitting nel nostro caso -> https://arxiv.org/abs/1512.05287 -> https://github.com/keitakurita/Better_LSTM_PyTorch
+
+Di base adesso il dropout è integrato nella rete (un po' come reccurent dropout, quella era solo per i pesi interni, adesso c'è n'è uno per gli input, uno per interno, uno per output)
+Facendola semplice ora il modello si comporta molto meglio, e ci mette di più ad overfittare, quasi meglio dell'originale oserei dire
+
+
+
 Riguardo adaptive incremental training,
 Fasi principali:
     - carica i dict vari
@@ -55,7 +62,7 @@ Fasi principali:
 
 
 Osservazioni:
-    - le performance sembrano crescere più velocemente a parità di piani
-    - circa il 30% dei piani alla fine di tutto passa il MC, escono circa 11 experience invece di 16
-    - in train overfitta un sacco, come prima in realtà, la loss in validazione migliora solo la prima epoca che vede nuovi piani, anche aumentando dropout a 0.3 non sembra sistemare
-    - rimane il problema delle predizioni basse, bisogna vedere con più piani se diventa più confident, la threshold sembra si possa abbassare fino a 0.1 senza subire significative riduzioni in accuracy e quindi aumentando l'uso di S1.
+    - le performance sembrano leggermente meglio con adaptive a parità di piani
+    - più della metà dei piani alla fine passa il MC, escono circa 6 experience invece di 17
+    - rimane il problema delle predizioni basse, bisogna vedere con più piani se diventa più confident, la threshold sembra si possa abbassare fino a 0.3-0.4 senza subire significative riduzioni in precision o accuracy, e anzi aumentando f1 e recall rispetto a 0.5
+    - con più piani si spera di aumentare ancora, ovviamente più il modello diventa bravo più piani servono perchè ne falliscono meno

@@ -15,6 +15,8 @@ from plan_generator_torch import PlanGeneratorMultiPerc, PlanGeneratorMultiPercA
 import wandb
 
 
+from better_lstm_model import LSTM
+
 class AttentionWeights(nn.Module):
     def __init__(self, max_dim):
         super(AttentionWeights, self).__init__()
@@ -49,17 +51,21 @@ class PlanModel(nn.Module):
         max_dim,
         embedding_dim=85,
         lstm_hidden=446,
-        dropout=0.30,
-        
+        dropouti=0.1,
+        dropoutw=0.1,
+        dropouto=0.1,
     ):
         super(PlanModel, self).__init__()
         self.max_dim = max_dim
 
         self.embedding = nn.Embedding(vocab_size + 1, embedding_dim, padding_idx=0)
-        self.lstm = nn.LSTM(
-            embedding_dim, lstm_hidden, batch_first=True
-        )
-        self.dropout = nn.Dropout(dropout)
+        
+        #! testing better_lstm for dropout instead of nn.Dropout
+        self.lstm = LSTM(
+            embedding_dim, lstm_hidden, batch_first=True, dropouti=dropouti, dropoutw=dropoutw, dropouto=dropouto)
+        # self.dropout = nn.Dropout(dropout)
+        
+        
         self.attention_weights = AttentionWeights(max_dim)
         self.context_vector = ContextVector()
         self.output_layer = nn.Linear(lstm_hidden, goal_size)
@@ -80,7 +86,8 @@ class PlanModel(nn.Module):
         # Apply mask to LSTM output
         lstm_output = lstm_output * mask.unsqueeze(-1)
         
-        lstm_output = self.dropout(lstm_output)
+        #! testing better_lstm for dropout
+        # lstm_output = self.dropout(lstm_output)
         
         attention_weights = self.attention_weights(
             lstm_output
@@ -349,7 +356,7 @@ if __name__ == "__main__":
     max_perc = 1  # Maximum fraction of plan to use
     max_dim = 32  # Maximum plan length #! needs to be set appropriately for the dataset
     epochs = 30  # Epochs per iteration
-    patience = 5  # Early stopping patience
+    patience = 3  # Early stopping patience
 
     # Data augmentation:
     augmentation_plans = 4  # Number of plans to augment per batch
@@ -457,18 +464,12 @@ if __name__ == "__main__":
                 lr = np.linspace(0.001, 0.0001, iterations)[iteration]
 
                 # Log iteration info
-                if iteration < 10:
-                    wandb.log({
-                        "iteration": f"00{iteration}",
-                        "current_learning_rate": lr,
-                        "train_plans_subset_size": len(train_plans_subset),
-                    })
-                else:   
-                    wandb.log({
-                        "iteration": f"0{iteration}",
-                        "current_learning_rate": lr,
-                        "train_plans_subset_size": len(train_plans_subset),
-                    })
+                wandb.log({
+                    "iteration": f"{iteration:03d}",
+                    "current_learning_rate": lr,
+                    "train_plans_subset_size": len(train_plans_subset),
+                })
+
 
                 # Add old plans if not first iteration
                 if start_index > 0:
@@ -499,16 +500,10 @@ if __name__ == "__main__":
                 )
 
                 # Log training info
-                if iteration < 10:
-                    wandb.log({
-                        f"iteration_00{iteration}/total_plans": len(train_generator.plans),
-                        f"iteration_00{iteration}/num_batches": train_generator.num_batches,
-                    })
-                else:
-                    wandb.log({
-                        f"iteration_0{iteration}/total_plans": len(train_generator.plans),
-                        f"iteration_0{iteration}/num_batches": train_generator.num_batches,
-                    })
+                wandb.log({
+                    f"iteration_{iteration:03d}/total_plans": len(train_generator.plans),
+                    f"iteration_{iteration:03d}/num_batches": train_generator.num_batches,
+                })
 
                 # Create or load model
                 if iteration == 0:
@@ -518,7 +513,9 @@ if __name__ == "__main__":
                         max_dim=max_dim,
                         embedding_dim=85,
                         lstm_hidden=446,
-                        dropout=1,
+                        dropouti=0.2,
+                        dropoutw=0.2,
+                        dropouto=0.2,
                     )
                     model.to(device)
                     print(f"Model created")
@@ -573,16 +570,10 @@ if __name__ == "__main__":
                     )
                     
                     # Log test metrics
-                    if iteration < 10:
-                        wandb.log({
-                            f"iteration_00{iteration}/test_accuracy": scores[0],
-                            f"iteration_00{iteration}/test_hamming_loss": scores[1],
-                        })
-                    else:
-                        wandb.log({
-                            f"iteration_0{iteration}/test_accuracy": scores[0],
-                            f"iteration_0{iteration}/test_hamming_loss": scores[1],
-                        })
+                    wandb.log({
+                        f"iteration_{iteration:03d}/test_accuracy": scores[0],
+                        f"iteration_{iteration:03d}/test_hamming_loss": scores[1],
+                    })
         else:
             # Non-incremental training
             lr = 0.0001

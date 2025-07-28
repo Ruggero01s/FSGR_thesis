@@ -5,7 +5,6 @@ from os import path
 import datetime
 import wandb
 from sklearn.metrics import accuracy_score
-from collections import deque
 import random
 from plan import Plan
 
@@ -210,7 +209,9 @@ def adaptive_incremental_training(
         max_dim=max_dim,
         embedding_dim=85,
         lstm_hidden=446,
-        dropout=0.3,
+        dropouti=0.2,
+        dropoutw=0.2,
+        dropouto=0.2,
     )
     model.to(device)
     
@@ -226,7 +227,6 @@ def adaptive_incremental_training(
     passed_plans = []  # Plans that passed evaluation
     trained_plans = []  # Plans that were actually used for training
     iteration = 0
-    #! review_pool = deque(maxlen=min(1000, len(train_plans)))  # Fixed-size pool of passed plans for review
     
     # Initialize precision history
     precision_dict = None
@@ -239,7 +239,6 @@ def adaptive_incremental_training(
         
         # Sample plans for review 
         review_plans = []
-        #! if review_frequency > 0 and iteration > 0 and review_pool:
         if review_frequency > 0 and iteration > 0 and len(passed_plans) > review_sample_size:
             if iteration % review_frequency == 0:
                 review_plans = random.sample(list(passed_plans), review_sample_size)
@@ -342,6 +341,7 @@ def adaptive_incremental_training(
             f"iteration_{iteration:03d}/pass_rate": pass_rate,
             f"iteration_{iteration:03d}/remaining_plans": len(remaining_plans),
             f"iteration_{iteration:03d}/total_passed_plans": len(passed_plans),
+            "pass_rate": pass_rate,
         })
                  
         # Set up plans for training - start with failed plans
@@ -354,7 +354,7 @@ def adaptive_incremental_training(
             break  # Exit the training loop if we don't have enough failed plans
         
         # If we have enough failed plans, include some previously used plans based on old_plans_factor
-        old_plans_factor = config.get("old_plans_factor", 0.2)  # Default to 20% if not specified
+        old_plans_factor = config.get("old_plans_factor", 1)  # Default to 20% if not specified
         
         if iteration > 0 and old_plans_factor > 0:
             # Calculate how many old plans to include
@@ -440,7 +440,13 @@ def adaptive_incremental_training(
     # Final report
     print(f"\n=== Training Complete ===")
     print(f"Completed {iteration} iterations")
-    print(f"Final pass rate: {len(passed_plans)/len(train_plans):.1%} ({len(passed_plans)}/{len(train_plans)})")
+    final_pass_rate = len(passed_plans)/len(train_plans)
+    print(f"Final pass rate: {final_pass_rate:.1%} ({len(passed_plans)}/{len(train_plans)})")
+    
+    # Log final cumulative pass rate
+    wandb.log({
+        "final_cumulative_pass_rate": final_pass_rate
+    })
     
     return model
 

@@ -307,15 +307,6 @@ def aggregate_results(all_results):
         set_name = result['set_name']
         recs = result['recommendations']
         print(f"Set {set_name}: Accuracy={recs['accuracy']:.4f}, F1={recs['f1']:.4f}, Balanced={recs['balanced']:.4f}")
-    
-    print("\nCurrent threshold in your code: 0.3000")
-    
-    if recommendations['f1'] < 0.3:
-        print("\nRecommendation: Consider lowering your threshold from 0.3 to improve performance.")
-    elif recommendations['f1'] > 0.3:
-        print("\nRecommendation: Consider raising your threshold from 0.3 to improve performance.")
-    else:
-        print("\nYour current threshold of 0.3 appears to be optimal.")
         
     return all_true_positives, all_true_negatives, overall_metrics, recommendations
 
