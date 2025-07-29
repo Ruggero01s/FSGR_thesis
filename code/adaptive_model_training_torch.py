@@ -7,10 +7,10 @@ import wandb
 from sklearn.metrics import accuracy_score
 import random
 from plan import Plan
-
+from grnet_model import PlanModel
 
 from model_training_torch import (
-    PlanModel, PlanDataset, train_model, CustomEarlyStopping, 
+    PlanDataset, train_model, CustomEarlyStopping, 
     get_model_predictions, print_metrics
 )
 from utils_torch import load_from_folder
