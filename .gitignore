@@ -16,6 +16,7 @@ datasets/gr_logistics/results/results_jsons/
 datasets/gr_logistics/results/results_jsons/adaptive/
 datasets/gr_logistics/results/results_jsons/incremental/
 datasets/gr_logistics/results/results_jsons/planner/
+datasets/gr_logistics/test
 # Byte-compiled / optimized / DLL files
 __pycache__/ 
 *.py[cod]
