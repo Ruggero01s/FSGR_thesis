@@ -173,6 +173,9 @@ def adaptive_incremental_training(
     review_frequency = config.get("review_frequency", 0)
     review_sample_size = config.get("review_sample_size", batch_size)
     
+    
+    epochs_trained = 0  # Track epochs trained across iterations
+
     # Create validation loader (fixed throughout training)
     val_generator = PlanGeneratorMultiPerc(
         val_plans,
@@ -226,8 +229,7 @@ def adaptive_incremental_training(
     remaining_plans = train_plans.copy()  # Plans not yet passed evaluation
     passed_plans = []  # Plans that passed evaluation
     trained_plans = []  # Plans that were actually used for training
-    iteration = 0
-    
+    iteration = 0    
     # Initialize precision history
     precision_dict = None
     
@@ -334,13 +336,13 @@ def adaptive_incremental_training(
         # Log evaluation statistics
         pass_rate = len(newly_passed_plans) / (len(newly_passed_plans) + len(failed_plans)) if newly_passed_plans or failed_plans else 0
         wandb.log({
-            f"iteration_{iteration:03d}/plans_evaluated": len(plan_evaluations),
-            f"iteration_{iteration:03d}/plans_passed": len(newly_passed_plans),
-            f"iteration_{iteration:03d}/plans_failed": len(failed_plans),
-            f"iteration_{iteration:03d}/plans_failed_review": failed_review_counter,
-            f"iteration_{iteration:03d}/pass_rate": pass_rate,
-            f"iteration_{iteration:03d}/remaining_plans": len(remaining_plans),
-            f"iteration_{iteration:03d}/total_passed_plans": len(passed_plans),
+            # f"iteration_{iteration:03d}/plans_evaluated": len(plan_evaluations),
+            # f"iteration_{iteration:03d}/plans_passed": len(newly_passed_plans),
+            # f"iteration_{iteration:03d}/plans_failed": len(failed_plans),
+            # f"iteration_{iteration:03d}/plans_failed_review": failed_review_counter,
+            # f"iteration_{iteration:03d}/pass_rate": pass_rate,
+            # f"iteration_{iteration:03d}/remaining_plans": len(remaining_plans),
+            # f"iteration_{iteration:03d}/total_passed_plans": len(passed_plans),
             "pass_rate": pass_rate,
         })
                  
@@ -368,11 +370,11 @@ def adaptive_incremental_training(
                 print(f"Added {len(old_plans_sample)} previously used plans ({old_plans_factor:.1%} of current increment)")
                 
                 # Log information about plan mixing
-                wandb.log({
-                    f"iteration_{iteration:03d}/failed_plans": len(failed_plans),
-                    f"iteration_{iteration:03d}/old_plans_added": len(old_plans_sample),
-                    f"iteration_{iteration:03d}/total_training_plans": len(plans_for_training)
-                })
+                # wandb.log({
+                #     f"iteration_{iteration:03d}/failed_plans": len(failed_plans),
+                #     f"iteration_{iteration:03d}/old_plans_added": len(old_plans_sample),
+                #     f"iteration_{iteration:03d}/total_training_plans": len(plans_for_training)
+                # })
         
         # Calculate learning rate for this iteration
         lr = np.linspace(0.001, 0.0001, 20)[min(iteration, 19)]  # Cap at 20 iterations for lr schedule
@@ -399,7 +401,7 @@ def adaptive_incremental_training(
         
         # Train model
         early_stopping = CustomEarlyStopping(patience=patience, iteration=iteration)
-        model = train_model(
+        model, epochs_trained = train_model(  # Capture epochs_trained return value
             model,
             train_loader,
             val_loader,
@@ -408,7 +410,9 @@ def adaptive_incremental_training(
             lr,
             early_stopping,
             iteration=iteration,
+            epochs_trained=epochs_trained  # Pass current epochs trained
         )
+        
         
         # Save model
         model_path = path.join(target_dir, f"model_{iteration}.pth")
@@ -427,10 +431,10 @@ def adaptive_incremental_training(
                 filename=f"metrics_{iteration}",
             )
             
-            wandb.log({
-                f"iteration_{iteration:03d}/test_accuracy": scores[0],
-                f"iteration_{iteration:03d}/test_hamming_loss": scores[1],
-            })
+            # wandb.log({
+            #     f"iteration_{iteration:03d}/test_accuracy": scores[0],
+            #     f"iteration_{iteration:03d}/test_hamming_loss": scores[1],
+            # })
         
         # After training, add all plans used in this iteration to trained_plans
         trained_plans.extend([p for p in plans_for_training if p not in trained_plans])
@@ -439,13 +443,13 @@ def adaptive_incremental_training(
 
     # Final report
     print(f"\n=== Training Complete ===")
-    print(f"Completed {iteration} iterations")
     final_pass_rate = len(passed_plans)/len(train_plans)
     print(f"Final pass rate: {final_pass_rate:.1%} ({len(passed_plans)}/{len(train_plans)})")
     
-    # Log final cumulative pass rate
+    # Log final metrics including total epochs
     wandb.log({
-        "final_cumulative_pass_rate": final_pass_rate
+        "final_cumulative_pass_rate": final_pass_rate,
+        "total_iterations": iteration
     })
     
     return model
@@ -483,14 +487,15 @@ if __name__ == "__main__":
         "review_frequency": 1,  # Review passed examples every N iterations
         "review_sample_size": 256,  # Number of passed examples to review
         "confidence_threshold": 0.04,  # difference between top two goal scores must be minimum this value
-        "experience_threshold": 0.7,    # avg precision of predicted goal must be minimum this value
+        "experience_threshold": 0,    # avg precision of predicted goal must be minimum this value
         "old_plans_factor": 1,  # %(in relation to size of incremnet) of previously used plans to add to each increment e.g. 0.5 means increment will be 150% standard size where 50% are old plans
     }
+    
     
     # Initialize wandb
     wandb.init(
         project="fsgr-plan-training",
-        name=f"adaptive_incremental_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}",
+        name=f"adaptive_incremental_mixp_{config['confidence_threshold']}conf_{config['experience_threshold']}exp_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}",
         config=config
     )
     

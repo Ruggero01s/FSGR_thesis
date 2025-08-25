@@ -70,7 +70,7 @@ class CustomEarlyStopping:
             if val_precision > self.max_prec and val_loss < 1 and loss < 1:
                 message = f"New best model found with precision {val_precision:.4f} and loss {val_loss:.4f}"
                 print(message)
-                wandb.log({"early_stopping_event": message})
+                # wandb.log({"early_stopping_event": message})
                 self.max_prec = val_precision
                 self.min_val_loss = val_loss
                 self.best_weights = model.state_dict().copy()
@@ -82,7 +82,7 @@ class CustomEarlyStopping:
             ):
                 message = f"New best model found with precision {val_precision:.4f} and loss {val_loss:.4f}"
                 print(message)
-                wandb.log({"early_stopping_event": message})
+                # wandb.log({"early_stopping_event": message})
                 self.min_val_loss = val_loss
                 self.best_weights = model.state_dict().copy()
                 self.increased_epochs = 0
@@ -92,7 +92,7 @@ class CustomEarlyStopping:
             if val_loss < self.min_val_loss and loss < 1 and val_loss < 1:
                 message = f"New best model found with loss {val_loss:.4f}"
                 print(message)
-                wandb.log({"early_stopping_event": message})
+                # wandb.log({"early_stopping_event": message})
                 self.min_val_loss = val_loss
                 self.best_weights = model.state_dict().copy()
                 self.increased_epochs = 0
@@ -105,12 +105,12 @@ class CustomEarlyStopping:
 
 
 def train_model(
-    model, train_loader, val_loader, epochs, device, lr, early_stopping=None, iteration=None
+    model, train_loader, val_loader, epochs, device, lr, early_stopping=None, iteration=None, epochs_trained=0 
 ):
     """Train the model"""
     criterion = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
-
+    
     for epoch in range(epochs):
         # Training phase
         model.train()
@@ -163,6 +163,7 @@ def train_model(
 
         # Log to wandb
         log_dict = {
+            "train_epochs": epochs_trained,
             "epoch": epoch + 1,
             "train_loss": train_loss,
             "train_hamming": train_hamming,
@@ -178,18 +179,21 @@ def train_model(
             
         wandb.log(log_dict)
 
+        # Increment epochs_trained
+        epochs_trained += 1
+
         # Early stopping
         if early_stopping and early_stopping(
             val_loss, val_precision, train_loss, model
         ):
             print(f"Early stopping triggered at epoch {epoch+1}")
-            wandb.log({"early_stopping_epoch": epoch + 1})
+            # wandb.log({"early_stopping_epoch": epoch + 1})
             if early_stopping.best_weights is not None:
                 model.load_state_dict(early_stopping.best_weights)
                 print("Best model weights restored")
             break
 
-    return model
+    return model, epochs_trained  # Return model and actual epochs trained
 
 
 def get_model_predictions(model, test_loader, device):
@@ -260,14 +264,14 @@ if __name__ == "__main__":
     results = False  # Whether to collect final results over saved iterations
     live_test = True  # Perform evaluation on test set after each iteration
     random_model = False  # If True, use random model for baseline
-    incremental = True  # Enable incremental training
+    incremental = True # Enable incremental training
 
     # Incremental training parameters:
     increment = 16  # Number of batches per iteration
     batch_size = 64  # Number of samples per batch
-    old_plans_percentage = 1  # Fraction of previous plans to include
+    old_plans_percentage = 2  # Fraction of previous plans to include
     min_perc = 0.3  # Minimum fraction of plan to use
-    max_perc = 1  # Maximum fraction of plan to use
+    max_perc = 0.3  # Maximum fraction of plan to use
     max_dim = 32  # Maximum plan length #! needs to be set appropriately for the dataset
     epochs = 30  # Epochs per iteration
     patience = 3  # Early stopping patience
@@ -276,12 +280,13 @@ if __name__ == "__main__":
     augmentation_plans = 4  # Number of plans to augment per batch
     use_full_plan = True  # Whether to include complete plan in augmentation
 
-    
+    epochs_trained = 0  # Track epochs trained across iterations
     
     # Initialize wandb
     wandb.init(
         project="fsgr-plan-training",
-        name=f"incremental_{'test' if test else 'full'}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}",
+        # name=f"monolitical_long_{'test' if test else 'full'}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}",
+        name=f"incremental_30p_{'test' if test else 'full'}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}",
         config={
             "increment": increment,
             "batch_size": batch_size,
@@ -378,15 +383,15 @@ if __name__ == "__main__":
                 lr = np.linspace(0.001, 0.0001, iterations)[iteration]
 
                 # Log iteration info
-                wandb.log({
-                    "iteration": f"{iteration:03d}",
-                    "current_learning_rate": lr,
-                    "train_plans_subset_size": len(train_plans_subset),
-                })
+                # wandb.log({
+                #     "iteration": f"{iteration:03d}",
+                #     "current_learning_rate": lr,
+                #     "train_plans_subset_size": len(train_plans_subset),
+                # })
 
 
                 # Add old plans if not first iteration
-                if start_index > 0:
+                if iteration > 1:
                     old_plans_count = int(old_plans_percentage * increment * batch_size)
                     old_plans = np.random.choice(
                         train_plans[0:start_index], old_plans_count, replace=False
@@ -414,10 +419,10 @@ if __name__ == "__main__":
                 )
 
                 # Log training info
-                wandb.log({
-                    f"iteration_{iteration:03d}/total_plans": len(train_generator.plans),
-                    f"iteration_{iteration:03d}/num_batches": train_generator.num_batches,
-                })
+                # wandb.log({
+                #     f"iteration_{iteration:03d}/total_plans": len(train_generator.plans),
+                #     f"iteration_{iteration:03d}/num_batches": train_generator.num_batches,
+                # })
 
                 # Create or load model
                 if iteration == 0:
@@ -456,7 +461,7 @@ if __name__ == "__main__":
                     patience=patience, iteration=iteration
                 )
                 if not random_model:
-                    model = train_model(
+                    model, epochs_trained = train_model(
                         model,
                         train_loader,
                         val_loader,
@@ -465,6 +470,7 @@ if __name__ == "__main__":
                         lr,
                         early_stopping,
                         iteration=iteration,
+                        epochs_trained=epochs_trained,
                     )
 
                 # Save model
@@ -484,10 +490,10 @@ if __name__ == "__main__":
                     )
                     
                     # Log test metrics
-                    wandb.log({
-                        f"iteration_{iteration:03d}/test_accuracy": scores[0],
-                        f"iteration_{iteration:03d}/test_hamming_loss": scores[1],
-                    })
+                    # wandb.log({
+                    #     f"iteration_{iteration:03d}/test_accuracy": scores[0],
+                    #     f"iteration_{iteration:03d}/test_hamming_loss": scores[1],
+                    # })
         else:
             # Non-incremental training
             lr = 0.0001
@@ -514,7 +520,7 @@ if __name__ == "__main__":
 
             early_stopping = CustomEarlyStopping(patience=patience, iteration=0)
             if not random_model:
-                model = train_model(
+                model, epochs_trained = train_model(
                     model, train_loader, val_loader, epochs, device, lr, early_stopping
                 )
 

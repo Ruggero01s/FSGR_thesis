@@ -1,0 +1,15 @@
+model_name,confidence_threshold,precision_threshold,final_network_usage,final_network_accuracy,final_overall_accuracy,final_time_improvement
+ada_mixp_008conf_08exp,0.0800,0.8000,40.07%,64.77%,71.31%,2.93x
+ada_mixp_002conf_09exp,0.0200,0.9000,38.71%,65.05%,70.68%,2.43x
+ada_mixp_008conf_04exp,0.0800,0.4000,40.70%,64.66%,71.37%,2.80x
+ada_mixp_016conf_08exp,0.1600,0.8000,41.54%,63.91%,72.96%,3.39x
+ada_mixp_004conf_09exp,0.0400,0.9000,42.27%,65.46%,73.73%,3.20x
+ada_mixp_0conf_08exp,0.0000,0.8000,54.44%,58.91%,65.39%,2.11x
+ada_mixp_008conf_09exp,0.0800,0.9000,39.45%,65.20%,72.00%,2.61x
+ada_mixp_016conf_09exp,0.1600,0.9000,38.14%,66.91%,71.84%,2.76x
+ada_mixp_016conf_04exp,0.1600,0.4000,41.59%,64.73%,73.00%,3.15x
+ada_mixp_004conf_04exp,0.0400,0.4000,39.24%,63.18%,70.59%,2.68x
+ada_mixp_002conf_04exp,0.0200,0.4000,37.62%,61.37%,68.74%,2.28x
+ada_mixp_002conf_08exp,0.0200,0.8000,40.60%,63.47%,70.70%,2.65x
+ada_mixp_004conf_08exp,0.0400,0.8000,41.33%,61.39%,71.56%,2.67x
+ada_mixp_004conf_00exp,0.0400,0.0000,51.83%,63.21%,66.06%,5.27x
